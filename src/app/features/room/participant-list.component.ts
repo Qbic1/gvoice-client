@@ -1,0 +1,185 @@
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { DomSanitizer } from '@angular/platform-browser';
+import { ParticipantService } from '../../core/services/participant.service';
+import { SignalRService } from '../../core/services/signalr.service';
+import { ICONS } from '../../shared/icons';
+
+@Component({
+  selector: 'app-participant-list',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="participant-list">
+      <div class="list-header">
+        <h3>Room Users</h3>
+        <span class="count">{{ participants().length }}</span>
+      </div>
+      <div class="cards-grid">
+        <div *ngFor="let p of participants()" 
+             class="participant-card" 
+             [class.local-user]="p.connectionId === localConnectionId()"
+             [class.speaking]="p.isSpeaking && !p.isMuted">
+          
+          <div class="avatar" [style.background-color]="getAvatarColor(p.displayName)">
+            {{ p.displayName.substring(0, 1).toUpperCase() }}
+            <div *ngIf="p.isSpeaking && !p.isMuted" class="speaking-ring"></div>
+          </div>
+
+          <div class="participant-info">
+            <span class="name">
+              {{ p.displayName }}
+            </span>
+            <div class="status-indicators">
+              <span *ngIf="p.isMuted" class="indicator muted" title="Muted" [innerHTML]="getMutedIcon()"></span>
+              <span *ngIf="p.isDeafened" class="indicator deafened" title="Deafened" [innerHTML]="getDeafenedIcon()"></span>
+              <span *ngIf="p.isListenOnly" class="badge">Listen-only</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .participant-list {
+      width: 100%;
+    }
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .list-header h3 {
+      margin: 0;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #6b7280;
+      font-weight: 700;
+    }
+    .count {
+      font-size: 0.75rem;
+      background: #f3f4f6;
+      padding: 2px 8px;
+      border-radius: 999px;
+      color: #374151;
+      font-weight: 600;
+    }
+    .cards-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .participant-card {
+      background: #fff;
+      border: 1px solid #f3f4f6;
+      border-radius: 10px;
+      padding: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: all 0.2s;
+    }
+    .local-user {
+      background: #f9fafb;
+      border-color: #e5e7eb;
+    }
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.875rem;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .speaking-ring {
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      border: 2px solid #10b981;
+      border-radius: 50%;
+      animation: pulse-ring 1.5s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .participant-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .name {
+      font-weight: 600;
+      font-size: 0.9375rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #111827;
+    }
+    .status-indicators {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.125rem;
+    }
+    .badge {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #eef2ff;
+      color: #4338ca;
+      font-weight: 600;
+    }
+    .indicator {
+      display: flex;
+      align-items: center;
+      color: #6b7280;
+    }
+    .indicator.muted {
+      color: #ef4444;
+    }
+    .indicator.deafened {
+      color: #ef4444;
+    }
+    ::ng-deep .indicator svg {
+      width: 14px;
+      height: 14px;
+    }
+  `]
+})
+export class ParticipantListComponent {
+  private signalrService = inject(SignalRService);
+  private sanitizer = inject(DomSanitizer);
+  participantService = inject(ParticipantService);
+  
+  participants = this.participantService.participants;
+  localConnectionId = this.signalrService.connectionId;
+
+  getAvatarColor(name: string): string {
+    const colors = ['#6366f1', '#ec4899', '#8b5cf6', '#f59e0b', '#10b981', '#3b82f6'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  }
+
+  getMutedIcon() {
+    return this.sanitizer.bypassSecurityTrustHtml(ICONS.MIC_OFF);
+  }
+
+  getDeafenedIcon() {
+    return this.sanitizer.bypassSecurityTrustHtml(ICONS.DEAFEN);
+  }
+}
