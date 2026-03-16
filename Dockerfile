@@ -1,6 +1,6 @@
 # Build Angular
 FROM node:22-alpine AS build
-WORKDIR /app
+WORKDIR /client
 
 COPY package*.json ./
 RUN npm ci
@@ -12,4 +12,4 @@ RUN npm run build -- --configuration production
 FROM caddy:latest
 
 COPY Caddyfile /etc/caddy/Caddyfile
-COPY --from=build /app/dist/gvoice-client/browser /srv/www
+COPY --from=build /client/dist/gvoice-client/browser /srv/www
