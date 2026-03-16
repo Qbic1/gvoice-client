@@ -3,7 +3,6 @@ import { isPlatformBrowser } from '@angular/common';
 import * as signalR from '@microsoft/signalr';
 import { Subject } from 'rxjs';
 import { Participant } from '../models/participant.model';
-import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -30,7 +29,7 @@ export class SignalRService {
     if (!this.isBrowser) return;
 
     this.hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl(`${environment.signalRHost}/hub/signaling`)
+      .withUrl("/api/hub/signaling")
       .build();
 
     this.hubConnection.onclose((error) => {
@@ -67,7 +66,7 @@ export class SignalRService {
     });
 
     try {
-      console.log(`Attempting to connect to SignalR hub at ${environment.signalRHost}...`);
+      console.log(`Attempting to connect to SignalR hub at /api/hub/signaling...`);
       this.connectionStatus.set('Connecting');
       await this.hubConnection.start();
       console.log('SignalR connected with ConnectionID:', this.hubConnection.connectionId);
