@@ -13,6 +13,7 @@ export class WebRtcService {
   private signalrService = inject(SignalRService);
 
   private peerConnections = new Map<string, RTCPeerConnection>();
+  private pendingConnections = new Map<string, Promise<RTCPeerConnection>>();
   private localStream: MediaStream | null = null;
   private remoteStreams = new Map<string, MediaStream>();
   private audioElements = new Map<string, HTMLAudioElement>();
@@ -44,7 +45,8 @@ export class WebRtcService {
 
   constructor() {
     this.signalrService.peerJoined$.subscribe(async (peer) => {
-      await this.createPeerConnection(peer.connectionId, true);
+      await this.getLocalStream();
+      await this.getOrCreatePeerConnection(peer.connectionId, true);
     });
 
     this.signalrService.receiveSignal$.subscribe(async (data) => {
@@ -139,9 +141,11 @@ export class WebRtcService {
     }
   }
 
-  private async createPeerConnection(connectionId: string, isOfferor: boolean) {
+  private async createPeerConnection(connectionId: string, isOfferor: boolean): Promise<RTCPeerConnection> {
+    const stream = this.localStream ?? await this.getLocalStream();
+
     const pc = new RTCPeerConnection(this.iceServers);
-    this.peerConnections.set(connectionId, pc);
+    this.peerConnections.set(connectionId, pc); // set early so ICE callbacks can find it
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
@@ -156,8 +160,8 @@ export class WebRtcService {
       this.playRemoteStream(connectionId, stream);
     };
 
-    if (this.localStream) {
-      this.localStream.getTracks().forEach(track => pc.addTrack(track, this.localStream!));
+    if (stream) {
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
     }
 
     if (isOfferor) {
@@ -165,16 +169,31 @@ export class WebRtcService {
       await pc.setLocalDescription(offer);
       this.signalrService.sendSignal(connectionId, JSON.stringify({ sdp: offer }));
     }
+
+    return pc;
+  }
+
+  private getOrCreatePeerConnection(connectionId: string, isOfferor: boolean): Promise<RTCPeerConnection> {
+    // Already fully created
+    const existing = this.peerConnections.get(connectionId);
+    if (existing) return Promise.resolve(existing);
+
+    // Creation is in-flight — return the same promise instead of starting a second one
+    const pending = this.pendingConnections.get(connectionId);
+    if (pending) return pending;
+
+    // Start creation and track the promise
+    const promise = this.createPeerConnection(connectionId, isOfferor)
+      .finally(() => this.pendingConnections.delete(connectionId)); // clean up when done
+
+    this.pendingConnections.set(connectionId, promise);
+    return promise;
   }
 
   private async handleSignal(connectionId: string, signal: string) {
     const data = JSON.parse(signal);
-    let pc = this.peerConnections.get(connectionId);
 
-    if (!pc) {
-      await this.createPeerConnection(connectionId, false);
-      pc = this.peerConnections.get(connectionId)!;
-    }
+    const pc = await this.getOrCreatePeerConnection(connectionId, false);
 
     if (data.sdp) {
       await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
@@ -189,6 +208,7 @@ export class WebRtcService {
   }
 
   private closePeerConnection(connectionId: string) {
+    this.pendingConnections.delete(connectionId);
     const pc = this.peerConnections.get(connectionId);
     if (pc) {
       pc.close();
