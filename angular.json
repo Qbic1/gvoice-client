@@ -27,23 +27,22 @@
             "styles": [
               "src/styles.css"
             ],
-            "server": "src/main.server.ts",
             "outputMode": "static",
+            "index": "src/index.html",
             "security": {
               "allowedHosts": []
             },
             "ssr": false
           },
           "configurations": {
-          "production": {
-            "fileReplacements": [
-              {
-                "replace": "src/environments/environment.development.ts",
-                "with": "src/environments/environment.ts"
-              }
-            ],
-            "budgets": [
-
+            "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.development.ts",
+                  "with": "src/environments/environment.ts"
+                }
+              ],
+              "budgets": [
                 {
                   "type": "initial",
                   "maximumWarning": "500kB",
