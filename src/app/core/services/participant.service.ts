@@ -10,6 +10,7 @@ export class ParticipantService {
   
   // Use a signal for the list of participants to make it reactive
   participants = signal<Participant[]>([]);
+  roomName = signal<string>('');
 
   localParticipant = computed(() => {
     const id = this.signalrService.connectionId();
@@ -17,13 +18,15 @@ export class ParticipantService {
   });
 
   constructor() {
-    this.signalrService.roomJoined$.subscribe((existingParticipants) => {
-      this.participants.set(existingParticipants);
+    this.signalrService.roomJoined$.subscribe(payload => {
+      this.participants.set(payload.participants);
+      this.roomName.set(payload.name);
     });
 
     this.signalrService.peerJoined$.subscribe((participant) => {
       this.participants.update(list => [...list, participant]);
     });
+
 
     this.signalrService.peerLeft$.subscribe((peer) => {
       this.participants.update(list => list.filter(p => p.connectionId !== peer.connectionId));

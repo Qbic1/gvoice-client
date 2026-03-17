@@ -2,6 +2,7 @@ import { Injectable, inject, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { SignalRService } from './signalr.service';
 import { Subject, ReplaySubject } from 'rxjs';
+import { environment } from '../../../environments/environment.development';
 
 @Injectable({
   providedIn: 'root'
@@ -27,8 +28,18 @@ export class WebRtcService {
   private iceServers: RTCConfiguration = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-    ]
+      {
+        urls: 'turn:voice-room.ru:3478?transport=udp',
+        username: 'webrtcuser',
+        credential: `${environment.turnPassword}`
+      },
+      {
+        urls: 'turn:voice-room.ru:3478?transport=tcp',
+        username: 'webrtcuser',
+        credential: `${environment.turnPassword}`
+      }
+    ],
+    iceCandidatePoolSize: 10
   };
 
   constructor() {
@@ -52,7 +63,7 @@ export class WebRtcService {
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       this.localStream$.next(this.localStream);
-      
+
       if (this.isPttMode()) {
         this.setMicEnabled(false);
       } else {
@@ -69,7 +80,7 @@ export class WebRtcService {
 
   toggleMute() {
     if (this.isPttMode()) return;
-    
+
     if (this.localStream) {
       const audioTrack = this.localStream.getAudioTracks()[0];
       if (audioTrack) {
@@ -183,7 +194,7 @@ export class WebRtcService {
       pc.close();
       this.peerConnections.delete(connectionId);
       this.remoteStreams.delete(connectionId);
-      
+
       const audio = this.audioElements.get(connectionId);
       if (audio) {
         audio.pause();
@@ -195,13 +206,13 @@ export class WebRtcService {
 
   private playRemoteStream(connectionId: string, stream: MediaStream) {
     if (!this.isBrowser) return;
-    
+
     let audio = this.audioElements.get(connectionId);
     if (!audio) {
       audio = new Audio();
       this.audioElements.set(connectionId, audio);
     }
-    
+
     audio.srcObject = stream;
     audio.muted = this.isDeafened();
     audio.play().catch(err => console.error('Error playing remote stream:', err));

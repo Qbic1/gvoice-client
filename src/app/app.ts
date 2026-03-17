@@ -1,5 +1,6 @@
 import { Component, inject, HostListener, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { JoinRoomComponent } from './features/room/join-room.component';
 import { ParticipantListComponent } from './features/room/participant-list.component';
 import { VoiceControlsComponent } from './features/controls/voice-controls.component';
@@ -10,15 +11,16 @@ import { SignalRService } from './core/services/signalr.service';
 import { AudioAnalysisService } from './core/services/audio-analysis.service';
 import { WebRtcService } from './core/services/webrtc.service';
 import { ChimesService } from './core/services/chimes.service';
+import { ParticipantService } from './core/services/participant.service';
 import { SettingsService } from './core/services/settings.service';
 
 @Component({
-  selector: 'app-root',
+  selector: 'app-root-inner',
   standalone: true,
   imports: [CommonModule, JoinRoomComponent, ParticipantListComponent, VoiceControlsComponent, ChatComponent, SettingsComponent],
   template: `
     <main (keydown)="onKeyDown($event)" (keyup)="onKeyUp($event)" class="app-container">
-      <app-join-room *ngIf="connectionStatus() === 'Disconnected'"></app-join-room>
+      <app-join-room *ngIf="connectionStatus() !== 'Connected'"></app-join-room>
       
       <div *ngIf="connectionStatus() === 'Connecting'" class="status-container">
         <div class="loader"></div>
@@ -29,9 +31,10 @@ import { SettingsService } from './core/services/settings.service';
         <header class="room-header">
           <div class="brand">
             <span class="logo">V</span>
-            <h1>VoiceRoom</h1>
+            <h1>{{ roomName() }}</h1>
           </div>
           <div class="header-actions">
+            <button class="secondary-btn" (click)="rejoin()">Lobby</button>
             <div class="user-info">
               Joined as: <strong>{{ displayName() }}</strong>
             </div>
@@ -67,7 +70,7 @@ import { SettingsService } from './core/services/settings.service';
           <div class="error-icon">⚠️</div>
           <h3>Server Disconnected</h3>
           <p>The session has ended because the connection to the server was lost.</p>
-          <button (click)="rejoin()">Rejoin Session</button>
+          <button (click)="rejoin()">Back to Lobby</button>
         </div>
       </div>
 
@@ -80,12 +83,12 @@ import { SettingsService } from './core/services/settings.service';
       display: block;
       height: 100vh;
       overflow: hidden;
+      background: var(--gray-100);
     }
     .app-container {
       height: 100%;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      color: #1f2937;
-      background: #f9fafb;
+      font-family: var(--font-family);
+      color: var(--gray-800);
     }
     .status-container {
       display: flex;
@@ -106,8 +109,9 @@ import { SettingsService } from './core/services/settings.service';
       align-items: center;
       padding: 0.75rem 1.5rem;
       background: #fff;
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid var(--gray-200);
       z-index: 10;
+      box-shadow: var(--shadow-sm);
     }
     .brand {
       display: flex;
@@ -115,7 +119,7 @@ import { SettingsService } from './core/services/settings.service';
       gap: 0.75rem;
     }
     .logo {
-      background: #000;
+      background: var(--gray-900);
       color: #fff;
       width: 32px;
       height: 32px;
@@ -123,27 +127,33 @@ import { SettingsService } from './core/services/settings.service';
       align-items: center;
       justify-content: center;
       border-radius: 8px;
-      font-weight: 900;
+      font-weight: 700;
       font-size: 1.2rem;
     }
-    .brand h1 { margin: 0; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.025em; }
+    .brand h1 { 
+      margin: 0; 
+      font-size: 1.125rem; 
+      font-weight: 600; 
+      color: var(--gray-900);
+    }
     .header-actions {
       display: flex;
       align-items: center;
       gap: 1.5rem;
     }
-    .user-info { font-size: 0.875rem; color: #6b7280; }
+    .user-info { font-size: 0.875rem; color: var(--gray-600); }
     .settings-btn {
       background: none;
-      border: 1px solid #e5e7eb;
-      padding: 0.25rem 0.5rem;
-      border-radius: 6px;
+      border: 1px solid var(--gray-300);
+      padding: 0.375rem 0.625rem;
+      border-radius: 0.5rem;
       cursor: pointer;
       font-size: 1.125rem;
       line-height: 1;
       transition: all 0.2s;
+      color: var(--gray-600);
     }
-    .settings-btn:hover { background: #f9fafb; border-color: #d1d5db; }
+    .settings-btn:hover { background: var(--gray-100); border-color: var(--gray-400); }
     
     .main-layout {
       display: flex;
@@ -154,33 +164,30 @@ import { SettingsService } from './core/services/settings.service';
     .sidebar {
       width: 320px;
       background: #fff;
-      border-right: 1px solid #e5e7eb;
+      border-right: 1px solid var(--gray-200);
       display: flex;
       flex-direction: column;
-      box-shadow: 2px 0 8px rgba(0,0,0,0.02);
     }
 
     .sidebar-section {
       flex: 1;
       overflow-y: auto;
-      padding: 1.25rem;
+      padding: 1rem;
     }
 
     .sidebar-footer {
       padding: 1.25rem;
-      background: #fdfdfd;
-      border-top: 1px solid #f3f4f6;
+      border-top: 1px solid var(--gray-200);
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 1.25rem;
     }
 
     .content-area {
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 1.5rem;
-      background: #f9fafb;
+      background: var(--gray-50);
     }
 
     .connection-pill {
@@ -189,7 +196,7 @@ import { SettingsService } from './core/services/settings.service';
       gap: 0.5rem;
       font-size: 0.75rem;
       font-weight: 600;
-      color: #059669;
+      color: var(--success-500);
       align-self: center;
       padding: 0.25rem 0.75rem;
       background: #ecfdf5;
@@ -198,7 +205,7 @@ import { SettingsService } from './core/services/settings.service';
     .dot {
       width: 6px;
       height: 6px;
-      background: #10b981;
+      background: var(--success-500);
       border-radius: 50%;
       animation: blink 2s infinite;
     }
@@ -208,25 +215,38 @@ import { SettingsService } from './core/services/settings.service';
       50% { opacity: 0.4; }
     }
 
-    .error-icon { font-size: 3rem; }
+    .error-icon { font-size: 3rem; color: var(--error-500); }
     
     button {
       padding: 0.625rem 1.25rem;
-      background-color: #000;
+      background-color: var(--primary-600);
       color: #fff;
       border: none;
-      border-radius: 6px;
+      border-radius: 0.5rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
     }
-    button:hover { background: #1f2937; }
+    button:hover { background: var(--primary-700); }
+
+    .secondary-btn {
+      background: #fff;
+      color: var(--gray-800);
+      border: 1px solid var(--gray-300);
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+    }
+    .secondary-btn:hover {
+      background: var(--gray-100);
+      border-color: var(--gray-400);
+    }
 
     .loader {
       width: 24px;
       height: 24px;
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #000;
+      border: 3px solid var(--gray-200);
+      border-top: 3px solid var(--primary-600);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
@@ -253,13 +273,24 @@ import { SettingsService } from './core/services/settings.service';
     .disconnect-card {
       background: #fff;
       padding: 2.5rem;
-      border-radius: 16px;
+      border-radius: var(--border-radius);
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
       max-width: 400px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      box-shadow: var(--shadow-lg);
+    }
+    .disconnect-card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .disconnect-card p {
+      color: var(--gray-600);
+      margin-bottom: 2rem;
     }
 
     @keyframes fadeIn {
@@ -269,15 +300,18 @@ import { SettingsService } from './core/services/settings.service';
   `]
 })
 export class App {
-  displayNameService = inject(DisplayNameService);
-  signalrService = inject(SignalRService);
-  audioAnalysisService = inject(AudioAnalysisService);
-  webrtcService = inject(WebRtcService);
-  chimesService = inject(ChimesService);
-  settingsService = inject(SettingsService);
+  private router = inject(Router);
+  private displayNameService = inject(DisplayNameService);
+  private signalrService = inject(SignalRService);
+  private participantService = inject(ParticipantService);
+  private audioAnalysisService = inject(AudioAnalysisService);
+  private webrtcService = inject(WebRtcService);
+  private chimesService = inject(ChimesService);
+  private settingsService = inject(SettingsService);
   
   displayName = this.displayNameService.displayName;
   connectionStatus = this.signalrService.connectionStatus;
+  roomName = this.participantService.roomName;
   showSettings = signal(false);
 
   constructor() {
@@ -291,7 +325,8 @@ export class App {
   }
 
   rejoin() {
-    window.location.reload();
+    this.signalrService.disconnect();
+    this.router.navigate(['/']);
   }
 
   @HostListener('window:keydown', ['$event'])

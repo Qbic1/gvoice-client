@@ -49,21 +49,22 @@ import { ICONS } from '../../shared/icons';
       justify-content: space-between;
       align-items: center;
       margin-bottom: 1rem;
+      padding: 0 0.5rem;
     }
     .list-header h3 {
       margin: 0;
-      font-size: 0.875rem;
+      font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #6b7280;
-      font-weight: 700;
+      color: var(--gray-500);
+      font-weight: 600;
     }
     .count {
       font-size: 0.75rem;
-      background: #f3f4f6;
+      background: var(--gray-200);
       padding: 2px 8px;
       border-radius: 999px;
-      color: #374151;
+      color: var(--gray-600);
       font-weight: 600;
     }
     .cards-grid {
@@ -73,8 +74,8 @@ import { ICONS } from '../../shared/icons';
     }
     .participant-card {
       background: #fff;
-      border: 1px solid #f3f4f6;
-      border-radius: 10px;
+      border: 1px solid transparent;
+      border-radius: 0.625rem;
       padding: 0.75rem;
       display: flex;
       align-items: center;
@@ -82,36 +83,36 @@ import { ICONS } from '../../shared/icons';
       transition: all 0.2s;
     }
     .local-user {
-      background: #f9fafb;
-      border-color: #e5e7eb;
+      background: var(--primary-50);
     }
     .avatar {
-      width: 36px;
-      height: 36px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #fff;
-      font-weight: 700;
-      font-size: 0.875rem;
+      font-weight: 600;
+      font-size: 1rem;
       position: relative;
       flex-shrink: 0;
     }
     .speaking-ring {
       position: absolute;
-      top: -2px;
-      left: -2px;
-      right: -2px;
-      bottom: -2px;
-      border: 2px solid #10b981;
+      top: -3px;
+      left: -3px;
+      right: -3px;
+      bottom: -3px;
+      border: 2px solid var(--success-500);
       border-radius: 50%;
       animation: pulse-ring 1.5s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+      box-shadow: 0 0 10px var(--success-500);
     }
     @keyframes pulse-ring {
-      0% { transform: scale(0.95); opacity: 0.8; }
-      50% { transform: scale(1.05); opacity: 0.4; }
-      100% { transform: scale(0.95); opacity: 0.8; }
+      0% { transform: scale(0.95); opacity: 1; }
+      70% { transform: scale(1.1); opacity: 0; }
+      100% { transform: scale(0.95); opacity: 0; }
     }
     .participant-info {
       flex: 1;
@@ -120,12 +121,12 @@ import { ICONS } from '../../shared/icons';
       flex-direction: column;
     }
     .name {
-      font-weight: 600;
-      font-size: 0.9375rem;
+      font-weight: 500;
+      font-size: 1rem;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: #111827;
+      color: var(--gray-800);
     }
     .status-indicators {
       display: flex;
@@ -135,26 +136,23 @@ import { ICONS } from '../../shared/icons';
     }
     .badge {
       font-size: 10px;
-      padding: 1px 6px;
+      padding: 2px 6px;
       border-radius: 4px;
-      background: #eef2ff;
-      color: #4338ca;
+      background: var(--secondary-200);
+      color: var(--secondary-700);
       font-weight: 600;
     }
     .indicator {
       display: flex;
       align-items: center;
-      color: #6b7280;
+      color: var(--gray-400);
     }
-    .indicator.muted {
-      color: #ef4444;
-    }
-    .indicator.deafened {
-      color: #ef4444;
+    .indicator.muted, .indicator.deafened {
+      color: var(--error-500);
     }
     ::ng-deep .indicator svg {
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
     }
   `]
 })
