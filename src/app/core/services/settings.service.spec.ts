@@ -1,15 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SettingsService } from './settings.service';
-import { signal } from '@angular/core';
-
-// Mock isPlatformBrowser
-vi.mock('@angular/common', () => ({
-  isPlatformBrowser: () => true
-}));
+import { PLATFORM_ID } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 
 describe('SettingsService', () => {
   let service: SettingsService;
-  let storage: { [key: string]: string };
+  let storage: { [key: string]: any };
 
   beforeEach(() => {
     storage = {};
@@ -21,8 +17,14 @@ describe('SettingsService', () => {
       }),
     });
 
-    // Manually instantiate the service
-    service = new SettingsService();
+    TestBed.configureTestingModule({
+      providers: [
+        SettingsService,
+        { provide: PLATFORM_ID, useValue: 'browser' }
+      ]
+    });
+
+    service = TestBed.inject(SettingsService);
   });
 
   it('should be created', () => {
@@ -35,7 +37,14 @@ describe('SettingsService', () => {
 
   it('should initialize pttKey from localStorage if a value exists', () => {
     localStorage.setItem('gvoice_ptt_key', 'KeyB');
-    const newService = new SettingsService();
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        SettingsService,
+        { provide: PLATFORM_ID, useValue: 'browser' }
+      ]
+    });
+    const newService = TestBed.inject(SettingsService);
     expect(newService.pttKey()).toBe('KeyB');
   });
 

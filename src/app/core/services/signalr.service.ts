@@ -31,7 +31,7 @@ export class SignalRService {
   public roomNotFound$ = new Subject<void>();
   public roomCreated$ = new Subject<{ id: string, name: string }>();
   public receiveChatMessage$ = new Subject<{ displayName: string, message: string, timestamp: string }>();
-  public receiveChatHistory$ = new Subject<{ displayName: string, message: string, timestamp: string }[]>();
+  public receiveChatHistory$ = new ReplaySubject<{ displayName: string, message: string, timestamp: string }[]>(1);
 
   connectionStatus = signal<'Disconnected' | 'Connecting' | 'Connected' | 'Error'>('Disconnected');
   connectionId = signal<string | null>(null);
@@ -96,6 +96,7 @@ export class SignalRService {
     this.hubConnection?.stop();
     this.connectionStatus.set('Disconnected');
     this.connectionId.set(null);
+    this.receiveChatHistory$.next([]);
   }
 
 

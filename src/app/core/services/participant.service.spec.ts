@@ -65,7 +65,7 @@ describe('ParticipantService', () => {
     expect(service.participants()[0].connectionId).toBe('2');
   });
 
-  it('should update a participant's muted state on peerStateUpdated event', () => {
+  it("should update a participant's muted state on peerStateUpdated event", () => {
     // First, add a participant
     const participant: Participant = { connectionId: '1', displayName: 'Alice', isMuted: false, isDeafened: false, isSpeaking: false };
     service.participants.set([participant]);
@@ -77,7 +77,7 @@ describe('ParticipantService', () => {
     expect(service.participants()[0].isMuted).toBe(true);
   });
 
-  it('should update a participant's deafened state on peerStateUpdated event', () => {
+  it("should update a participant's deafened state on peerStateUpdated event", () => {
     const participant: Participant = { connectionId: '1', displayName: 'Alice', isMuted: false, isDeafened: false, isSpeaking: false };
     service.participants.set([participant]);
     

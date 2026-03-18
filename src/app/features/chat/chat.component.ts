@@ -166,9 +166,21 @@ export class ChatComponent implements AfterViewChecked {
         isLocal: data.displayName === currentLocalName
       }]);
     });
+
+    this.signalrService.receiveChatHistory$.subscribe(history => {
+      const currentLocalName = this.displayNameService.displayName();
+      const mappedHistory = history.map(msg => ({
+        displayName: msg.displayName,
+        message: msg.message,
+        timestamp: new Date(msg.timestamp),
+        isLocal: msg.displayName === currentLocalName
+      }));
+      this.messages.set(mappedHistory);
+    });
     
     this.signalrService.roomJoined$.subscribe(() => {
-      this.messages.set([]);
+      // We don't clear messages here anymore because history might have been received just before.
+      // If we need to clear messages when JOINING a new room, we should do it at the start of startConnection or joinRoom.
     });
   }
 
