@@ -1,4 +1,4 @@
-import { Component, inject, signal, HostListener, Output, EventEmitter } from '@angular/core';
+import { Component, inject, signal, HostListener, Output, EventEmitter, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SettingsService } from '../../core/services/settings.service';
 
@@ -7,14 +7,14 @@ import { SettingsService } from '../../core/services/settings.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="modal-overlay" (click)="close()">
-      <div class="modal-card" (click)="$event.stopPropagation()">
-        <header class="modal-header">
+    <div [class.modal-overlay]="!isInline" (click)="close()">
+      <div [class.modal-card]="!isInline" [class.p-6]="isInline" (click)="$event.stopPropagation()">
+        <header class="modal-header" *ngIf="!isInline">
           <h3>Voice Settings</h3>
           <button class="close-btn" (click)="close()">×</button>
         </header>
         
-        <div class="modal-body">
+        <div class="modal-body" [class.p-0]="isInline">
           <div class="setting-item">
             <label>Push-to-Talk Key</label>
             <div class="rebind-control" [class.recording]="isRecording()" (click)="startRecording()">
@@ -26,9 +26,13 @@ import { SettingsService } from '../../core/services/settings.service';
           <div class="setting-info">
             <p>Your PTT key is used only when "PTT Mode" is enabled in the voice controls.</p>
           </div>
+
+          <div class="mt-8 flex flex-col gap-4" *ngIf="isInline">
+             <button class="btn-secondary w-full py-3" (click)="reset()">Reset to Default</button>
+          </div>
         </div>
 
-        <footer class="modal-footer">
+        <footer class="modal-footer" *ngIf="!isInline">
           <button class="btn-secondary" (click)="reset()">Reset to Default</button>
           <button class="btn-primary" (click)="close()">Done</button>
         </footer>
@@ -164,6 +168,7 @@ import { SettingsService } from '../../core/services/settings.service';
 export class SettingsComponent {
   private settingsService = inject(SettingsService);
   
+  @Input() isInline = false;
   @Output() onClose = new EventEmitter<void>();
   
   pttKey = this.settingsService.pttKey;

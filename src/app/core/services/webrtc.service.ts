@@ -23,6 +23,7 @@ export class WebRtcService {
 
   isMuted = signal(false);
   isPttMode = signal(false);
+  isPttActive = signal(false);
   isDeafened = signal(false);
   private lastMuteStateBeforePtt = false;
 
@@ -127,6 +128,7 @@ export class WebRtcService {
 
   setPttActive(active: boolean) {
     if (!this.isPttMode()) return;
+    this.isPttActive.set(active);
     this.setMicEnabled(active);
   }
 

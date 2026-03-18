@@ -39,6 +39,7 @@ import { WebRtcService } from '../../core/services/webrtc.service';
           />
           <div *ngIf="roomNotFoundError" class="field-error">The requested room does not exist.</div>
           <div *ngIf="passwordError" class="field-error">Incorrect room password.</div>
+          
           <label class="listen-only-label">
             <input type="checkbox" [(ngModel)]="isListenOnly" name="isListenOnly" [disabled]="isConnecting" />
             Join as Listen-only
@@ -67,6 +68,17 @@ import { WebRtcService } from '../../core/services/webrtc.service';
       border-radius: var(--border-radius);
       box-shadow: var(--shadow-lg);
       text-align: center;
+    }
+    @media (max-width: 640px) {
+      .join-container {
+        height: 100%;
+        max-width: none;
+        border-radius: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 1.5rem;
+      }
     }
     h1 {
       font-weight: 800;

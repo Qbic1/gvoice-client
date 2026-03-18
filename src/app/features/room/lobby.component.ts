@@ -14,7 +14,7 @@ import { AdminService } from '../../core/services/admin.service';
       <header class="lobby-header">
         <h1>VoiceRoom Lobby</h1>
         <div class="admin-actions">
-          <button *ngIf="!adminService.isAdmin()" (click)="showAdminLogin.set(true)" class="secondary-btn">Admin Login</button>
+          <button *ngIf="!adminService.isAdmin()" (click)="openAdminLogin()" class="secondary-btn">Admin Login</button>
           <button *ngIf="adminService.isAdmin()" (click)="showCreateRoom.set(true)" class="primary-btn">Create Room</button>
           <button *ngIf="adminService.isAdmin()" (click)="adminService.logout()" class="text-btn">Logout</button>
         </div>
@@ -270,6 +270,11 @@ export class LobbyComponent implements OnInit {
     this.signalrService.roomCreated$.subscribe(async () => {
       this.rooms.set(await this.signalrService.fetchRooms());
     });
+  }
+
+  openAdminLogin() {
+    this.adminPasswordInput = this.adminService.getAdminPassword() || '';
+    this.showAdminLogin.set(true);
   }
 
   async loginAdmin() {

@@ -22,7 +22,8 @@
               {
                 "glob": "**/*",
                 "input": "public"
-              }
+              },
+              "src/service-worker.js"
             ],
             "styles": [
               "src/styles.css"

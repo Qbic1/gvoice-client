@@ -12,4 +12,12 @@ import { appConfig } from './app/app.config';
 export class Root {}
 
 bootstrapApplication(Root, appConfig)
+  .then(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js').catch(err => {
+        console.error('Service Worker registration failed: ', err);
+      });
+    }
+  })
   .catch((err) => console.error(err));
+

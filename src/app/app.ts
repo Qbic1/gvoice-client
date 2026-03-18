@@ -1,6 +1,7 @@
 import { Component, inject, HostListener, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { DomSanitizer } from '@angular/platform-browser';
 import { JoinRoomComponent } from './features/room/join-room.component';
 import { ParticipantListComponent } from './features/room/participant-list.component';
 import { VoiceControlsComponent } from './features/controls/voice-controls.component';
@@ -13,6 +14,7 @@ import { WebRtcService } from './core/services/webrtc.service';
 import { ChimesService } from './core/services/chimes.service';
 import { ParticipantService } from './core/services/participant.service';
 import { SettingsService } from './core/services/settings.service';
+import { ICONS } from './shared/icons';
 
 @Component({
   selector: 'app-root-inner',
@@ -31,20 +33,23 @@ import { SettingsService } from './core/services/settings.service';
         <header class="room-header">
           <div class="brand">
             <span class="logo">V</span>
-            <h1>{{ roomName() }}</h1>
+            <h1 class="room-title">{{ roomName() }}</h1>
           </div>
           <div class="header-actions">
-            <button class="secondary-btn" (click)="rejoin()">Lobby</button>
-            <div class="user-info">
+            <div class="user-info hidden sm:block">
               Joined as: <strong>{{ displayName() }}</strong>
             </div>
+            <button class="secondary-btn home-btn" (click)="rejoin()" title="Back to Lobby">
+               <span class="icon" [innerHTML]="homeIcon"></span>
+            </button>
             <button class="settings-btn" (click)="showSettings.set(true)" title="Settings">
               ⚙️
             </button>
           </div>
         </header>
         
-        <div class="main-layout">
+        <!-- Desktop Layout -->
+        <div class="main-layout desktop-layout">
           <aside class="sidebar">
             <div class="sidebar-section">
               <app-participant-list></app-participant-list>
@@ -62,6 +67,21 @@ import { SettingsService } from './core/services/settings.service';
             <app-chat></app-chat>
           </section>
         </div>
+
+        <!-- Mobile Layout: Unified Room & Chat -->
+        <div class="main-layout mobile-layout unified-mobile">
+          <div class="mobile-top-section">
+            <app-participant-list></app-participant-list>
+          </div>
+          
+          <div class="mobile-chat-section">
+            <app-chat></app-chat>
+          </div>
+          
+          <div class="mobile-controls-footer">
+            <app-voice-controls></app-voice-controls>
+          </div>
+        </div>
       </div>
 
       <!-- Disconnect Overlay -->
@@ -75,13 +95,13 @@ import { SettingsService } from './core/services/settings.service';
       </div>
 
       <!-- Settings Modal -->
-      <app-settings *ngIf="showSettings()" (onClose)="showSettings.set(false)"></app-settings>
+      <app-settings *ngIf="showSettings() && activeTab() !== 'settings'" (onClose)="showSettings.set(false)"></app-settings>
     </main>
   `,
   styles: [`
     :host {
       display: block;
-      height: 100vh;
+      height: 100dvh;
       overflow: hidden;
       background: var(--gray-100);
     }
@@ -95,13 +115,13 @@ import { SettingsService } from './core/services/settings.service';
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      height: 100dvh;
       gap: 1rem;
     }
     .room-container {
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      height: 100dvh;
     }
     .room-header {
       display: flex;
@@ -152,13 +172,89 @@ import { SettingsService } from './core/services/settings.service';
       line-height: 1;
       transition: all 0.2s;
       color: var(--gray-600);
+      display: none; /* Hidden by default (mobile) */
+    }
+
+    @media (min-width: 1024px) {
+      .settings-btn {
+        display: block;
+      }
     }
     .settings-btn:hover { background: var(--gray-100); border-color: var(--gray-400); }
     
     .main-layout {
-      display: flex;
       flex: 1;
       overflow: hidden;
+      display: none;
+    }
+    
+    .desktop-layout {
+      /* Uses display: none from .main-layout */
+    }
+    
+    .mobile-layout {
+      /* Uses display: none from .main-layout */
+    }
+
+    @media (max-width: 767px) {
+      .mobile-layout {
+        display: flex !important;
+        flex-direction: column;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .desktop-layout {
+        display: flex !important;
+      }
+    }
+
+    /* Unified Mobile Styles */
+    .unified-mobile {
+      background: var(--gray-50);
+      flex: 1;
+    }
+
+    .mobile-top-section {
+      flex: 0 0 auto;
+      max-height: 35%;
+      overflow-y: auto;
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--gray-200);
+      background: #fff;
+    }
+
+    .mobile-chat-section {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mobile-controls-footer {
+      flex: 0 0 auto;
+      padding: 0.75rem;
+      background: #fff;
+      border-top: 1px solid var(--gray-200);
+      padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    }
+
+    .home-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      color: var(--gray-700);
+    }
+    .home-btn .icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .home-btn .icon svg {
+       display: block;
     }
 
     .sidebar {
@@ -297,6 +393,29 @@ import { SettingsService } from './core/services/settings.service';
       from { opacity: 0; }
       to { opacity: 1; }
     }
+
+    .mobile-nav {
+       padding-bottom: env(safe-area-inset-bottom);
+    }
+    .nav-item {
+       flex: 1;
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+       justify-content: center;
+       background: transparent;
+       color: var(--gray-400);
+       padding: 0;
+       height: 100%;
+       border-radius: 0;
+    }
+    .nav-item:hover { background: transparent; }
+    .nav-item.active {
+       color: var(--primary-600);
+    }
+    .safe-area-bottom {
+       height: calc(4rem + env(safe-area-inset-bottom));
+    }
   `]
 })
 export class App {
@@ -308,11 +427,16 @@ export class App {
   private webrtcService = inject(WebRtcService);
   private chimesService = inject(ChimesService);
   private settingsService = inject(SettingsService);
+  private sanitizer = inject(DomSanitizer);
+  
+  icons = ICONS;
+  homeIcon = this.sanitizer.bypassSecurityTrustHtml(ICONS.HOME);
   
   displayName = this.displayNameService.displayName;
   connectionStatus = this.signalrService.connectionStatus;
   roomName = this.participantService.roomName;
   showSettings = signal(false);
+  activeTab = signal<'room' | 'chat' | 'settings'>('room');
 
   constructor() {
     this.signalrService.peerJoined$.subscribe(() => {

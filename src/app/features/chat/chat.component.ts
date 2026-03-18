@@ -54,6 +54,12 @@ import { ChatMessage } from '../../core/models/chat-message.model';
       overflow: hidden;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
+    @media (max-width: 768px) {
+      .chat-container {
+        border: none;
+        border-radius: 0;
+      }
+    }
     .messages-list {
       flex: 1;
       padding: 1.5rem;
@@ -62,6 +68,11 @@ import { ChatMessage } from '../../core/models/chat-message.model';
       flex-direction: column;
       gap: 1rem;
       background: #fff;
+    }
+    @media (max-width: 768px) {
+      .messages-list {
+         padding: 1rem;
+      }
     }
     .message-wrapper {
       display: flex;

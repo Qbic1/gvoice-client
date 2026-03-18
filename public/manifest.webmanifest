@@ -1,0 +1,17 @@
+{
+  "name": "VoiceRoom",
+  "short_name": "VoiceRoom",
+  "theme_color": "#111827",
+  "background_color": "#f9fafb",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ]
+}
