@@ -6,6 +6,8 @@ import { Subscription } from 'rxjs';
 import { DisplayNameService } from '../../core/services/display-name.service';
 import { SignalRService } from '../../core/services/signalr.service';
 import { WebRtcService } from '../../core/services/webrtc.service';
+import { ICONS } from '../../shared/icons';
+import { DomSanitizer } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-join-room',
@@ -13,33 +15,38 @@ import { WebRtcService } from '../../core/services/webrtc.service';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="join-container">
-      <h1>VoiceRoom</h1>
-      
+      <div class="join-header">
+        <button class="home-btn" (click)="goHome()" title="Back to Lobby">
+          <span [innerHTML]="homeIcon"></span>
+        </button>
+        <h1>VoiceRoom</h1>
+      </div>
+
       <div *ngIf="!roomId" class="error-banner">
         Invalid Room URL. Please use a valid secret link.
       </div>
 
       <div *ngIf="roomId">
-        <p>Enter your name and room password to join</p>
+        <p>Enter your name and password to join room <code>{{ roomId }}</code></p>
         <form (submit)="onSubmit($event)">
-          <input 
-            type="text" 
-            [(ngModel)]="nameInput" 
-            name="displayName" 
+          <input
+            type="text"
+            [(ngModel)]="nameInput"
+            name="displayName"
             placeholder="Display Name"
             maxlength="20"
             [disabled]="isConnecting"
           />
-          <input 
-            type="password" 
-            [(ngModel)]="roomPassword" 
-            name="roomPassword" 
+          <input
+            type="password"
+            [(ngModel)]="roomPassword"
+            name="roomPassword"
             placeholder="Room Password"
             [disabled]="isConnecting"
           />
           <div *ngIf="roomNotFoundError" class="field-error">The requested room does not exist.</div>
           <div *ngIf="passwordError" class="field-error">Incorrect room password.</div>
-          
+
           <label class="listen-only-label">
             <input type="checkbox" [(ngModel)]="isListenOnly" name="isListenOnly" [disabled]="isConnecting" />
             Join as Listen-only
@@ -80,12 +87,18 @@ import { WebRtcService } from '../../core/services/webrtc.service';
         padding: 1.5rem;
       }
     }
+    .join-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
     h1 {
       font-weight: 800;
       font-size: 1.875rem;
       color: var(--gray-900);
-      margin-top: 0;
-      margin-bottom: 0.5rem;
+      margin: 0;
     }
     p {
       color: var(--gray-600);
@@ -133,7 +146,7 @@ import { WebRtcService } from '../../core/services/webrtc.service';
       margin-top: -0.5rem;
       margin-bottom: 1rem;
     }
-    button {
+    button[type="submit"] {
       padding: 0.875rem 1.5rem;
       background: var(--primary-600);
       color: #fff;
@@ -145,16 +158,44 @@ import { WebRtcService } from '../../core/services/webrtc.service';
       transition: all 0.2s ease;
       box-shadow: var(--shadow-sm);
     }
-    button:hover {
+    button[type="submit"]:hover {
       background: var(--primary-700);
       box-shadow: var(--shadow-md);
       transform: translateY(-1px);
     }
-    button:disabled {
+    button[type="submit"]:disabled {
       background-color: var(--gray-300);
       cursor: not-allowed;
       box-shadow: none;
       transform: none;
+    }
+    .home-btn {
+      padding: 0.4rem;
+      background: transparent;
+      color: var(--gray-500);
+      border: 1px solid var(--gray-200);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: none;
+      transform: none;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+    .home-btn:hover {
+      background: var(--gray-100);
+      color: var(--gray-800);
+      transform: none;
+      box-shadow: none;
+    }
+    code {
+      background: var(--gray-100);
+      padding: 0.1rem 0.4rem;
+      border-radius: 0.25rem;
+      font-size: 0.9em;
+      color: var(--primary-600);
     }
   `]
 })
@@ -164,9 +205,12 @@ export class JoinRoomComponent implements OnInit, OnDestroy {
   private displayNameService = inject(DisplayNameService);
   private signalrService = inject(SignalRService);
   private webrtcService = inject(WebRtcService);
-  
+  private sanitizer = inject(DomSanitizer);
+
   private readonly PWD_STORAGE_KEY_PREFIX = 'gvoice_pwd_';
   private subscriptions = new Subscription();
+
+  homeIcon = this.sanitizer.bypassSecurityTrustHtml(ICONS.HOME);
 
   roomId: string | null = null;
   nameInput = this.displayNameService.displayName() || '';
@@ -200,10 +244,9 @@ export class JoinRoomComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    // On init, ensure we are in a disconnected state from any previous attempts
     this.signalrService.disconnect();
     this.extractRoomId();
-    
+
     this.subscriptions.add(this.router.events.subscribe(() => {
       this.extractRoomId();
     }));
@@ -211,6 +254,10 @@ export class JoinRoomComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+  }
+
+  goHome() {
+    this.router.navigate(['/']);
   }
 
   private extractRoomId() {
@@ -227,7 +274,7 @@ export class JoinRoomComponent implements OnInit, OnDestroy {
     const path = window.location.pathname;
     const segments = path.split('/');
     const roomIndex = segments.indexOf('room');
-    
+
     if (roomIndex !== -1 && segments[roomIndex + 1]) {
       this.roomId = segments[roomIndex + 1];
       const savedPassword = localStorage.getItem(`${this.PWD_STORAGE_KEY_PREFIX}${this.roomId}`);
@@ -246,12 +293,11 @@ export class JoinRoomComponent implements OnInit, OnDestroy {
     this.roomNotFoundError = false;
     this.displayNameService.saveName(this.nameInput);
     const name = this.displayNameService.displayName()!;
-    
+
     try {
       const connected = await this.signalrService.startConnection(this.roomId);
       if (!connected) {
         this.isConnecting = false;
-        // Optionally show a generic connection error here
         return;
       }
 
@@ -261,7 +307,7 @@ export class JoinRoomComponent implements OnInit, OnDestroy {
           this.isListenOnly = true;
         }
       }
-      
+
       await this.signalrService.joinRoom(this.roomId, this.roomPassword, name, this.isListenOnly);
     } catch (err) {
       console.error('Failed to join:', err);
@@ -269,13 +315,3 @@ export class JoinRoomComponent implements OnInit, OnDestroy {
     }
   }
 }
-
-// Add the new error message to the template
-const template = `
-<div *ngIf="roomNotFoundError" class="field-error">Room not found. Please check the URL.</div>
-<div *ngIf="passwordError" class="field-error">Incorrect room password</div>
-`;
-
-// It's not possible to append to the template, so I'll just note that this should be added.
-// I will now add the roomNotFoundError to the component's template.
-
