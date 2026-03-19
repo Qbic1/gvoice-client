@@ -1,7 +1,8 @@
 import { Injectable, inject, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { SignalRService } from './signalr.service';
-import { Subject, ReplaySubject } from 'rxjs';
+import { ParticipantService } from './participant.service';
+import { Subject, ReplaySubject, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment.development';
 
 @Injectable({
@@ -11,11 +12,17 @@ export class WebRtcService {
   private platformId = inject(PLATFORM_ID);
   private isBrowser = isPlatformBrowser(this.platformId);
   private signalrService = inject(SignalRService);
+  private participantService = inject(ParticipantService);
 
   private peerConnections = new Map<string, RTCPeerConnection>();
   private pendingConnections = new Map<string, Promise<RTCPeerConnection>>();
   private localStream: MediaStream | null = null;
   private remoteStreams = new Map<string, MediaStream>();
+  
+  // Audio Graph Management
+  private audioContext: AudioContext | null = null;
+  private participantGainNodes = new Map<string, GainNode>();
+  private participantSourceNodes = new Map<string, MediaStreamAudioSourceNode>();
   private audioElements = new Map<string, HTMLAudioElement>();
 
   public localStream$ = new ReplaySubject<MediaStream>(1);
@@ -45,6 +52,12 @@ export class WebRtcService {
     this.signalrService.peerLeft$.subscribe((peer) => {
       this.closePeerConnection(peer.connectionId);
     });
+  }
+
+  private initAudioContext() {
+    if (!this.audioContext && this.isBrowser) {
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
   }
 
   async getLocalStream(): Promise<MediaStream | null> {
@@ -108,9 +121,9 @@ export class WebRtcService {
       }
     }
 
-    // Mute/Unmute all existing remote audio elements
-    this.audioElements.forEach(audio => {
-      audio.muted = newState;
+    // Update all gain nodes for deafen (Mute all)
+    this.participantGainNodes.forEach((gainNode, connectionId) => {
+      this.applyParticipantVolume(connectionId);
     });
   }
 
@@ -118,6 +131,25 @@ export class WebRtcService {
     if (!this.isPttMode()) return;
     this.isPttActive.set(active);
     this.setMicEnabled(active);
+  }
+
+  setParticipantVolume(connectionId: string, volume: number) {
+    this.participantService.updateParticipantVolume(connectionId, volume);
+    this.applyParticipantVolume(connectionId);
+  }
+
+  private applyParticipantVolume(connectionId: string) {
+    const gainNode = this.participantGainNodes.get(connectionId);
+    if (!gainNode || !this.audioContext) return;
+
+    const participant = this.participantService.participants().find(p => p.connectionId === connectionId);
+    const volumePercent = participant?.volume ?? 100;
+    
+    // Gain value: 0.0 to 2.0 (representing 0% to 200%)
+    // If deafened, gain is always 0
+    const gainValue = this.isDeafened() ? 0 : (volumePercent / 100);
+    
+    gainNode.gain.setTargetAtTime(gainValue, this.audioContext.currentTime, 0.01);
   }
 
   private setMicEnabled(enabled: boolean) {
@@ -205,6 +237,19 @@ export class WebRtcService {
       this.peerConnections.delete(connectionId);
       this.remoteStreams.delete(connectionId);
 
+      // Cleanup Audio Graph
+      const source = this.participantSourceNodes.get(connectionId);
+      if (source) {
+        source.disconnect();
+        this.participantSourceNodes.delete(connectionId);
+      }
+
+      const gain = this.participantGainNodes.get(connectionId);
+      if (gain) {
+        gain.disconnect();
+        this.participantGainNodes.delete(connectionId);
+      }
+
       const audio = this.audioElements.get(connectionId);
       if (audio) {
         audio.pause();
@@ -216,32 +261,61 @@ export class WebRtcService {
 
   private playRemoteStream(connectionId: string, stream: MediaStream) {
     if (!this.isBrowser) return;
+    this.initAudioContext();
 
+    if (this.audioContext) {
+      // Create Audio Graph for individual volume control (including boost > 1.0)
+      try {
+        const source = this.audioContext.createMediaStreamSource(stream);
+        const gainNode = this.audioContext.createGain();
+        
+        source.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+        
+        this.participantSourceNodes.set(connectionId, source);
+        this.participantGainNodes.set(connectionId, gainNode);
+        
+        // Apply initial volume (from storage)
+        this.applyParticipantVolume(connectionId);
+        
+        // Resume context on interaction if needed
+        if (this.audioContext.state === 'suspended') {
+          const resume = () => {
+            this.audioContext?.resume();
+            document.removeEventListener('click', resume);
+          };
+          document.addEventListener('click', resume);
+        }
+      } catch (err) {
+        console.error('Failed to set up GainNode for peer:', connectionId, err);
+      }
+    }
+
+    // We still keep the HTMLAudioElement for autoplay policy handling and secondary fallback, 
+    // but we MUTE it so we don't hear double audio. The GainNode -> Destination handles the actual output.
     let audio = this.audioElements.get(connectionId);
     if (!audio) {
       audio = new Audio();
       audio.autoplay = true;
+      audio.muted = true; // IMPORTANT: Muted because we use Web Audio API for output
       this.audioElements.set(connectionId, audio);
     }
 
     audio.srcObject = stream;
-    audio.muted = this.isDeafened();
     
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch(err => {
         if (err.name === 'NotAllowedError') {
           console.warn('Autoplay blocked for peer:', connectionId, '. Will retry on next interaction.');
-          // Add a one-time listener to the document to resume all audio on first click
           const resumeAudio = () => {
             this.audioElements.forEach(el => el.play().catch(() => {}));
+            this.audioContext?.resume();
             document.removeEventListener('click', resumeAudio);
             document.removeEventListener('keydown', resumeAudio);
           };
           document.addEventListener('click', resumeAudio);
           document.addEventListener('keydown', resumeAudio);
-        } else {
-          console.error('Error playing remote stream:', err);
         }
       });
     }

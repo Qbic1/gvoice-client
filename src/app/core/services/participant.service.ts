@@ -1,4 +1,5 @@
-import { Injectable, signal, inject, computed } from '@angular/core';
+import { Injectable, signal, inject, computed, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { SignalRService } from './signalr.service';
 import { Participant } from '../models/participant.model';
 
@@ -7,7 +8,11 @@ import { Participant } from '../models/participant.model';
 })
 export class ParticipantService {
   private signalrService = inject(SignalRService);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
   
+  private readonly VOLUME_PREFIX = 'gv_vol_';
+
   // Use a signal for the list of participants to make it reactive
   participants = signal<Participant[]>([]);
   roomName = signal<string>('');
@@ -19,12 +24,20 @@ export class ParticipantService {
 
   constructor() {
     this.signalrService.roomJoined$.subscribe(payload => {
-      this.participants.set(payload.participants);
+      const participantsWithVolume = payload.participants.map(p => ({
+        ...p,
+        volume: this.getStoredVolume(p.displayName)
+      }));
+      this.participants.set(participantsWithVolume);
       this.roomName.set(payload.name);
     });
 
     this.signalrService.peerJoined$.subscribe((participant) => {
-      this.participants.update(list => [...list, participant]);
+      const pWithVol = {
+        ...participant,
+        volume: this.getStoredVolume(participant.displayName)
+      };
+      this.participants.update(list => [...list, pWithVol]);
     });
 
 
@@ -60,5 +73,25 @@ export class ParticipantService {
         return p;
       });
     });
+  }
+
+  updateParticipantVolume(connectionId: string, volume: number) {
+    this.participants.update(list => {
+      return list.map(p => {
+        if (p.connectionId === connectionId) {
+          if (this.isBrowser) {
+            localStorage.setItem(`${this.VOLUME_PREFIX}${p.displayName}`, volume.toString());
+          }
+          return { ...p, volume };
+        }
+        return p;
+      });
+    });
+  }
+
+  private getStoredVolume(displayName: string): number {
+    if (!this.isBrowser) return 100;
+    const stored = localStorage.getItem(`${this.VOLUME_PREFIX}${displayName}`);
+    return stored ? parseInt(stored, 10) : 100;
   }
 }

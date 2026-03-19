@@ -170,8 +170,10 @@ export class AudioAnalysisService implements OnDestroy {
     this.analysers.forEach((_, connectionId) => this.teardownAnalysis(connectionId));
     this.analysers.clear();
 
-    this.audioContext?.close();
-    this.audioContext = null;
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
 
     this.subscriptions.unsubscribe();
   }

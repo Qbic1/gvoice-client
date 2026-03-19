@@ -5,4 +5,5 @@ export interface Participant {
   isDeafened: boolean;
   isListenOnly: boolean;
   isSpeaking?: boolean;
+  volume?: number; // Local volume for this participant (0 to 200)
 }
