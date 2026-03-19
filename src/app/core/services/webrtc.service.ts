@@ -18,7 +18,7 @@ export class WebRtcService {
   private pendingConnections = new Map<string, Promise<RTCPeerConnection>>();
   private localStream: MediaStream | null = null;
   private remoteStreams = new Map<string, MediaStream>();
-  
+
   // Audio Graph Management
   public audioContext: AudioContext | null = null;
   private participantGainNodes = new Map<string, GainNode>();
@@ -158,11 +158,11 @@ export class WebRtcService {
 
     const participant = this.participantService.participants().find(p => p.connectionId === connectionId);
     const volumePercent = participant?.volume ?? 100;
-    
+
     // Gain value: 0.0 to 2.0 (representing 0% to 200%)
     // If deafened, gain is always 0
     const gainValue = this.isDeafened() ? 0 : (volumePercent / 100);
-    
+
     gainNode.gain.setTargetAtTime(gainValue, this.audioContext.currentTime, 0.01);
   }
 
@@ -273,6 +273,49 @@ export class WebRtcService {
     }
   }
 
+  private startVAD(connectionId: string, stream: MediaStream) {
+    if (!this.audioContext) return;
+
+    const analyser = this.audioContext.createAnalyser();
+    analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = 0.3;
+
+    // Tap off the source node (already created) into the analyser
+    const source = this.participantSourceNodes.get(connectionId);
+    if (!source) return;
+    source.connect(analyser);
+
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    const SPEAKING_THRESHOLD = 20; // tweak if too sensitive
+    const SILENCE_DEBOUNCE_MS = 800;
+    let silenceTimer: ReturnType<typeof setTimeout> | null = null;
+    let isSpeaking = false;
+
+    const check = () => {
+      if (!this.participantSourceNodes.has(connectionId)) return; // peer left
+      analyser.getByteFrequencyData(dataArray);
+      const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+
+      if (avg > SPEAKING_THRESHOLD) {
+        if (!isSpeaking) {
+          isSpeaking = true;
+          this.participantService.updateSpeakingStatus(connectionId, true);
+        }
+        if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+      } else {
+        if (isSpeaking && !silenceTimer) {
+          silenceTimer = setTimeout(() => {
+            isSpeaking = false;
+            this.participantService.updateSpeakingStatus(connectionId, false);
+            silenceTimer = null;
+          }, SILENCE_DEBOUNCE_MS);
+        }
+      }
+      requestAnimationFrame(check);
+    };
+    requestAnimationFrame(check);
+  }
+
   private playRemoteStream(connectionId: string, stream: MediaStream) {
     if (!this.isBrowser) return;
     this.initAudioContext();
@@ -282,16 +325,18 @@ export class WebRtcService {
       try {
         const source = this.audioContext.createMediaStreamSource(stream);
         const gainNode = this.audioContext.createGain();
-        
+
         source.connect(gainNode);
         gainNode.connect(this.audioContext.destination);
-        
+
         this.participantSourceNodes.set(connectionId, source);
         this.participantGainNodes.set(connectionId, gainNode);
-        
+
         // Apply initial volume (from storage)
         this.applyParticipantVolume(connectionId);
-        
+
+        this.startVAD(connectionId, stream);
+
         // Resume context on interaction if needed
         if (this.audioContext.state === 'suspended') {
           const resume = () => {
@@ -312,21 +357,21 @@ export class WebRtcService {
     if (!audio) {
       audio = new Audio();
       audio.autoplay = true;
-      audio.muted = true; 
+      audio.muted = true;
       audio.style.display = 'none'; // Ensure it's hidden
       document.body.appendChild(audio); // Append to DOM for better support (e.g. iOS)
       this.audioElements.set(connectionId, audio);
     }
 
     audio.srcObject = stream;
-    
+
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch(err => {
         if (err.name === 'NotAllowedError') {
           console.warn('Autoplay blocked for peer:', connectionId, '. Will retry on next interaction.');
           const resumeAudio = () => {
-            this.audioElements.forEach(el => el.play().catch(() => {}));
+            this.audioElements.forEach(el => el.play().catch(() => { }));
             this.audioContext?.resume();
             document.removeEventListener('click', resumeAudio);
             document.removeEventListener('keydown', resumeAudio);
