@@ -62,6 +62,17 @@ export class AudioAnalysisService implements OnDestroy {
       this.subscriptions.add(peerAddedSub);
       this.subscriptions.add(peerLeftSub);
 
+      // Add global interaction listener to resume AudioContext if it's suspended (autoplay policy)
+      const resumeAudio = () => {
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+          this.audioContext.resume();
+        }
+        document.removeEventListener('click', resumeAudio);
+        document.removeEventListener('keydown', resumeAudio);
+      };
+      document.addEventListener('click', resumeAudio);
+      document.addEventListener('keydown', resumeAudio);
+
       this.startLoop();
     }
   }

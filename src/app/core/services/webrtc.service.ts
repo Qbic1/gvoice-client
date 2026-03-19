@@ -28,19 +28,7 @@ export class WebRtcService {
   private lastMuteStateBeforePtt = false;
 
   private iceServers: RTCConfiguration = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      {
-        urls: 'turn:voice-room.ru:3478?transport=udp',
-        username: 'webrtcuser',
-        credential: `${environment.turnPassword}`
-      },
-      {
-        urls: 'turn:voice-room.ru:3478?transport=tcp',
-        username: 'webrtcuser',
-        credential: `${environment.turnPassword}`
-      }
-    ],
+    iceServers: environment.iceServers,
     iceCandidatePoolSize: 10
   };
 
@@ -232,11 +220,30 @@ export class WebRtcService {
     let audio = this.audioElements.get(connectionId);
     if (!audio) {
       audio = new Audio();
+      audio.autoplay = true;
       this.audioElements.set(connectionId, audio);
     }
 
     audio.srcObject = stream;
     audio.muted = this.isDeafened();
-    audio.play().catch(err => console.error('Error playing remote stream:', err));
+    
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(err => {
+        if (err.name === 'NotAllowedError') {
+          console.warn('Autoplay blocked for peer:', connectionId, '. Will retry on next interaction.');
+          // Add a one-time listener to the document to resume all audio on first click
+          const resumeAudio = () => {
+            this.audioElements.forEach(el => el.play().catch(() => {}));
+            document.removeEventListener('click', resumeAudio);
+            document.removeEventListener('keydown', resumeAudio);
+          };
+          document.addEventListener('click', resumeAudio);
+          document.addEventListener('keydown', resumeAudio);
+        } else {
+          console.error('Error playing remote stream:', err);
+        }
+      });
+    }
   }
 }

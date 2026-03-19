@@ -40,9 +40,10 @@ import { AdminService } from '../../core/services/admin.service';
       <div *ngIf="showAdminLogin()" class="modal-overlay">
         <div class="modal">
           <h3>Admin Authentication</h3>
-          <input type="password" [(ngModel)]="adminPasswordInput" placeholder="Enter Global Admin Password" />
+          <div *ngIf="errorMessage()" class="error-text mb-4">{{ errorMessage() }}</div>
+          <input type="password" [(ngModel)]="adminPasswordInput" placeholder="Enter Global Admin Password" (keyup.enter)="loginAdmin()" />
           <div class="modal-actions">
-            <button (click)="showAdminLogin.set(false)">Cancel</button>
+            <button (click)="closeModals()">Cancel</button>
             <button (click)="loginAdmin()" class="primary-btn">Verify</button>
           </div>
         </div>
@@ -52,10 +53,11 @@ import { AdminService } from '../../core/services/admin.service';
       <div *ngIf="showCreateRoom()" class="modal-overlay">
         <div class="modal">
           <h3>Create New Room</h3>
+          <div *ngIf="errorMessage()" class="error-text mb-4">{{ errorMessage() }}</div>
           <input type="text" [(ngModel)]="newRoomName" placeholder="Room Name (e.g. Daily Sync)" />
           <input type="password" [(ngModel)]="newRoomPassword" placeholder="Room Password (required to join)" />
           <div class="modal-actions">
-            <button (click)="showCreateRoom.set(false)">Cancel</button>
+            <button (click)="closeModals()">Cancel</button>
             <button (click)="createRoom()" class="primary-btn" [disabled]="!newRoomName || !newRoomPassword">Create</button>
           </div>
         </div>
@@ -63,6 +65,8 @@ import { AdminService } from '../../core/services/admin.service';
     </div>
   `,
   styles: [`
+    .mb-4 { margin-bottom: 1rem; }
+    .error-text { color: var(--error-500); font-size: 0.875rem; font-weight: 600; }
     .lobby-container { 
       max-width: 900px; 
       margin: 4rem auto; 
@@ -256,6 +260,7 @@ export class LobbyComponent implements OnInit {
   rooms = signal<RoomInfo[]>([]);
   showAdminLogin = signal(false);
   showCreateRoom = signal(false);
+  errorMessage = signal<string | null>(null);
 
   adminPasswordInput = '';
   newRoomName = '';
@@ -273,31 +278,44 @@ export class LobbyComponent implements OnInit {
   }
 
   openAdminLogin() {
+    this.errorMessage.set(null);
     this.adminPasswordInput = this.adminService.getAdminPassword() || '';
     this.showAdminLogin.set(true);
   }
 
+  closeModals() {
+    this.showAdminLogin.set(false);
+    this.showCreateRoom.set(false);
+    this.errorMessage.set(null);
+  }
+
   async loginAdmin() {
+    this.errorMessage.set(null);
     if (await this.adminService.verifyAdmin(this.adminPasswordInput)) {
       this.showAdminLogin.set(false);
       this.adminPasswordInput = '';
     } else {
-      alert('Invalid Admin Password');
+      this.errorMessage.set('Invalid Admin Password');
     }
   }
 
   async createRoom() {
+    this.errorMessage.set(null);
     const adminPassword = this.adminService.getAdminPassword();
     if (!adminPassword) {
-      alert('Session expired or admin password missing. Please login again.');
+      this.errorMessage.set('Session expired. Please login again.');
       this.adminService.logout();
       this.showAdminLogin.set(true);
       return;
     }
 
-    await this.signalrService.createRoom(adminPassword, this.newRoomName, this.newRoomPassword);
-    this.showCreateRoom.set(false);
-    this.newRoomName = '';
-    this.newRoomPassword = '';
+    try {
+      await this.signalrService.createRoom(adminPassword, this.newRoomName, this.newRoomPassword);
+      this.showCreateRoom.set(false);
+      this.newRoomName = '';
+      this.newRoomPassword = '';
+    } catch (err) {
+      this.errorMessage.set('Failed to create room. Please try again.');
+    }
   }
 }

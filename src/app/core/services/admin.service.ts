@@ -21,7 +21,7 @@ export class AdminService {
   constructor() {
     if (this.isBrowser) {
       this.isAdmin.set(localStorage.getItem(this.ADMIN_KEY) === 'true');
-      this.currentPassword = localStorage.getItem(this.PWD_KEY);
+      this.currentPassword = sessionStorage.getItem(this.PWD_KEY);
     }
   }
 
@@ -33,7 +33,7 @@ export class AdminService {
       
       if (this.isBrowser) {
         localStorage.setItem(this.ADMIN_KEY, 'true');
-        localStorage.setItem(this.PWD_KEY, password);
+        sessionStorage.setItem(this.PWD_KEY, password);
       }
       return true;
     } catch (err) {
@@ -48,9 +48,10 @@ export class AdminService {
 
   logout() {
     this.isAdmin.set(false);
-    // We keep currentPassword and PWD_KEY in localStorage as requested
+    this.currentPassword = null;
     if (this.isBrowser) {
       localStorage.removeItem(this.ADMIN_KEY);
+      sessionStorage.removeItem(this.PWD_KEY);
     }
   }
 }

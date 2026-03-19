@@ -1,9 +1,8 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, signal, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DomSanitizer } from '@angular/platform-browser';
 import { WebRtcService } from '../../core/services/webrtc.service';
 import { ParticipantService } from '../../core/services/participant.service';
-import { ICONS } from '../../shared/icons';
+import { IconService } from '../../core/services/icon.service';
 
 @Component({
   selector: 'app-voice-controls',
@@ -135,6 +134,9 @@ import { ICONS } from '../../shared/icons';
       color: #111827;
     }
 
+    .mt-2 { margin-top: 0.5rem; }
+    .mt-6 { margin-top: 1.5rem; }
+
     /* Mobile PTT Styles */
     .mobile-ptt-container {
       width: 100%;
@@ -182,10 +184,10 @@ import { ICONS } from '../../shared/icons';
     }
   `]
 })
-export class VoiceControlsComponent {
+export class VoiceControlsComponent implements OnInit {
   private webrtcService = inject(WebRtcService);
   private participantService = inject(ParticipantService);
-  private sanitizer = inject(DomSanitizer);
+  icons = inject(IconService);
   
   isMuted = this.webrtcService.isMuted;
   isPttMode = this.webrtcService.isPttMode;
@@ -193,8 +195,21 @@ export class VoiceControlsComponent {
   isDeafened = this.webrtcService.isDeafened;
   isListenOnly = computed(() => this.participantService.localParticipant()?.isListenOnly ?? false);
 
-  isMobile() {
-    return window.innerWidth < 768;
+  isMobile = signal(false);
+
+  ngOnInit() {
+    this.checkWidth();
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    this.checkWidth();
+  }
+
+  private checkWidth() {
+    if (typeof window !== 'undefined') {
+      this.isMobile.set(window.innerWidth < 768);
+    }
   }
 
   toggleMute() {
@@ -218,23 +233,24 @@ export class VoiceControlsComponent {
   }
 
   private hapticFeedback() {
-    if ('vibrate' in navigator) {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       navigator.vibrate(15);
     }
   }
 
   getMicIcon() {
-    if (this.isListenOnly()) return this.sanitizer.bypassSecurityTrustHtml(ICONS.BLOCK);
-    return this.sanitizer.bypassSecurityTrustHtml(this.isMuted() ? ICONS.MIC_OFF : ICONS.MIC);
+    if (this.isListenOnly()) return this.icons.BLOCK;
+    return this.isMuted() ? this.icons.MIC_OFF : this.icons.MIC;
   }
 
   getMicIconLarge() {
-    if (this.isListenOnly()) return this.sanitizer.bypassSecurityTrustHtml(ICONS.BLOCK);
-    const svg = (this.isPttActive() || !this.isMuted()) ? ICONS.MIC : ICONS.MIC_OFF;
-    return this.sanitizer.bypassSecurityTrustHtml(svg.replace('width="20"', 'width="32"').replace('height="20"', 'height="32"'));
+    if (this.isListenOnly()) return this.icons.BLOCK;
+    // Note: IconService provides 20x20 icons. For Large we might want 32x32.
+    // However, simplified approach for now is using same icon, CSS can scale it if needed.
+    return (this.isPttActive() || !this.isMuted()) ? this.icons.MIC : this.icons.MIC_OFF;
   }
 
   getDeafenIcon() {
-    return this.sanitizer.bypassSecurityTrustHtml(this.isDeafened() ? ICONS.DEAFEN : ICONS.HEADPHONES);
+    return this.isDeafened() ? this.icons.DEAFEN : this.icons.HEADPHONES;
   }
 }

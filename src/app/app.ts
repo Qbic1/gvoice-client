@@ -1,25 +1,20 @@
-import { Component, inject, HostListener, signal } from '@angular/core';
+import { Component, inject, HostListener, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { DomSanitizer } from '@angular/platform-browser';
 import { JoinRoomComponent } from './features/room/join-room.component';
-import { ParticipantListComponent } from './features/room/participant-list.component';
-import { VoiceControlsComponent } from './features/controls/voice-controls.component';
-import { ChatComponent } from './features/chat/chat.component';
 import { SettingsComponent } from './features/settings/settings.component';
-import { DisplayNameService } from './core/services/display-name.service';
+import { DesktopLayoutComponent } from './features/layout/desktop-layout.component';
+import { MobileLayoutComponent } from './features/layout/mobile-layout.component';
 import { SignalRService } from './core/services/signalr.service';
-import { AudioAnalysisService } from './core/services/audio-analysis.service';
 import { WebRtcService } from './core/services/webrtc.service';
 import { ChimesService } from './core/services/chimes.service';
-import { ParticipantService } from './core/services/participant.service';
 import { SettingsService } from './core/services/settings.service';
-import { ICONS } from './shared/icons';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-root-inner',
   standalone: true,
-  imports: [CommonModule, JoinRoomComponent, ParticipantListComponent, VoiceControlsComponent, ChatComponent, SettingsComponent],
+  imports: [CommonModule, JoinRoomComponent, SettingsComponent, DesktopLayoutComponent, MobileLayoutComponent],
   template: `
     <main (keydown)="onKeyDown($event)" (keyup)="onKeyUp($event)" class="app-container">
       <app-join-room *ngIf="connectionStatus() !== 'Connected'"></app-join-room>
@@ -30,58 +25,16 @@ import { ICONS } from './shared/icons';
       </div>
 
       <div *ngIf="connectionStatus() === 'Connected'" class="room-container">
-        <header class="room-header">
-          <div class="brand">
-            <span class="logo">V</span>
-            <h1 class="room-title">{{ roomName() }}</h1>
-          </div>
-          <div class="header-actions">
-            <div class="user-info hidden sm:block">
-              Joined as: <strong>{{ displayName() }}</strong>
-            </div>
-            <button class="secondary-btn home-btn" (click)="rejoin()" title="Back to Lobby">
-               <span class="icon" [innerHTML]="homeIcon"></span>
-            </button>
-            <button class="settings-btn" (click)="showSettings.set(true)" title="Settings">
-              ⚙️
-            </button>
-          </div>
-        </header>
-        
-        <!-- Desktop Layout -->
-        <div class="main-layout desktop-layout">
-          <aside class="sidebar">
-            <div class="sidebar-section">
-              <app-participant-list></app-participant-list>
-            </div>
-            
-            <div class="sidebar-footer">
-              <app-voice-controls></app-voice-controls>
-              <div class="connection-pill">
-                <span class="dot"></span> Connected
-              </div>
-            </div>
-          </aside>
-          
-          <section class="content-area">
-            <app-chat></app-chat>
-          </section>
-        </div>
+        <app-desktop-layout 
+          *ngIf="!isMobile()" 
+          (onRejoin)="rejoin()" 
+          (onShowSettings)="showSettings.set(true)">
+        </app-desktop-layout>
 
-        <!-- Mobile Layout: Unified Room & Chat -->
-        <div class="main-layout mobile-layout unified-mobile">
-          <div class="mobile-top-section">
-            <app-participant-list></app-participant-list>
-          </div>
-          
-          <div class="mobile-chat-section">
-            <app-chat></app-chat>
-          </div>
-          
-          <div class="mobile-controls-footer">
-            <app-voice-controls></app-voice-controls>
-          </div>
-        </div>
+        <app-mobile-layout 
+          *ngIf="isMobile()" 
+          (onRejoin)="rejoin()">
+        </app-mobile-layout>
       </div>
 
       <!-- Disconnect Overlay -->
@@ -90,12 +43,12 @@ import { ICONS } from './shared/icons';
           <div class="error-icon">⚠️</div>
           <h3>Server Disconnected</h3>
           <p>The session has ended because the connection to the server was lost.</p>
-          <button (click)="rejoin()">Back to Lobby</button>
+          <button (click)="rejoin()" class="primary-btn">Back to Lobby</button>
         </div>
       </div>
 
-      <!-- Settings Modal -->
-      <app-settings *ngIf="showSettings() && activeTab() !== 'settings'" (onClose)="showSettings.set(false)"></app-settings>
+      <!-- Settings Modal (Desktop only, mobile has it in tabs) -->
+      <app-settings *ngIf="showSettings() && !isMobile()" (onClose)="showSettings.set(false)"></app-settings>
     </main>
   `,
   styles: [`
@@ -119,253 +72,18 @@ import { ICONS } from './shared/icons';
       gap: 1rem;
     }
     .room-container {
-      display: flex;
-      flex-direction: column;
-      height: 100dvh;
+      height: 100%;
     }
-    .room-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.75rem 1.5rem;
-      background: #fff;
-      border-bottom: 1px solid var(--gray-200);
-      z-index: 10;
-      box-shadow: var(--shadow-sm);
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    .logo {
-      background: var(--gray-900);
-      color: #fff;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 1.2rem;
-    }
-    .brand h1 { 
-      margin: 0; 
-      font-size: 1.125rem; 
-      font-weight: 600; 
-      color: var(--gray-900);
-    }
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-    }
-    .user-info { font-size: 0.875rem; color: var(--gray-600); }
-    .settings-btn {
-      background: none;
-      border: 1px solid var(--gray-300);
-      padding: 0.375rem 0.625rem;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      font-size: 1.125rem;
-      line-height: 1;
-      transition: all 0.2s;
-      color: var(--gray-600);
-      display: none; /* Hidden by default (mobile) */
-    }
-
-    @media (min-width: 1024px) {
-      .settings-btn {
-        display: block;
-      }
-    }
-    .settings-btn:hover { background: var(--gray-100); border-color: var(--gray-400); }
-    
-    .main-layout {
-      flex: 1;
-      overflow: hidden;
-      display: none;
-    }
-    
-    .desktop-layout {
-      /* Uses display: none from .main-layout */
-    }
-    
-    .mobile-layout {
-      /* Uses display: none from .main-layout */
-    }
-
-    @media (max-width: 767px) {
-      .mobile-layout {
-        display: flex !important;
-        flex-direction: column;
-      }
-    }
-
-    @media (min-width: 768px) {
-      .desktop-layout {
-        display: flex !important;
-      }
-    }
-
-    /* Unified Mobile Styles */
-    .unified-mobile {
-      background: var(--gray-50);
-      flex: 1;
-    }
-
-    .mobile-top-section {
-      flex: 0 0 auto;
-      max-height: 35%;
-      overflow-y: auto;
-      padding: 0.75rem;
-      border-bottom: 1px solid var(--gray-200);
-      background: #fff;
-    }
-
-    .mobile-chat-section {
-      flex: 1;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .mobile-controls-footer {
-      flex: 0 0 auto;
-      padding: 0.75rem;
-      background: #fff;
-      border-top: 1px solid var(--gray-200);
-      padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
-    }
-
-    .home-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      padding: 0;
-      color: var(--gray-700);
-    }
-    .home-btn .icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .home-btn .icon svg {
-       display: block;
-    }
-
-    .sidebar {
-      width: 320px;
-      background: #fff;
-      border-right: 1px solid var(--gray-200);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .sidebar-section {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-    }
-
-    .sidebar-footer {
-      padding: 1.25rem;
-      border-top: 1px solid var(--gray-200);
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
-    }
-
-    .content-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background: var(--gray-50);
-    }
-
-    .connection-pill {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--success-500);
-      align-self: center;
-      padding: 0.25rem 0.75rem;
-      background: #ecfdf5;
-      border-radius: 9999px;
-    }
-    .dot {
-      width: 6px;
-      height: 6px;
-      background: var(--success-500);
-      border-radius: 50%;
-      animation: blink 2s infinite;
-    }
-
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    .error-icon { font-size: 3rem; color: var(--error-500); }
-    
-    button {
-      padding: 0.625rem 1.25rem;
-      background-color: var(--primary-600);
-      color: #fff;
-      border: none;
-      border-radius: 0.5rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    button:hover { background: var(--primary-700); }
-
-    .secondary-btn {
-      background: #fff;
-      color: var(--gray-800);
-      border: 1px solid var(--gray-300);
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
-      font-weight: 600;
-    }
-    .secondary-btn:hover {
-      background: var(--gray-100);
-      border-color: var(--gray-400);
-    }
-
-    .loader {
-      width: 24px;
-      height: 24px;
-      border: 3px solid var(--gray-200);
-      border-top: 3px solid var(--primary-600);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin { 
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
     .disconnect-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 9999;
-      animation: fadeIn 0.3s ease-out;
     }
-
     .disconnect-card {
       background: #fff;
       padding: 2.5rem;
@@ -375,77 +93,68 @@ import { ICONS } from './shared/icons';
       align-items: center;
       text-align: center;
       max-width: 400px;
-      box-shadow: var(--shadow-lg);
     }
-    .disconnect-card h3 {
-      font-size: 1.25rem;
+    .error-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .primary-btn {
+      padding: 0.75rem 1.5rem;
+      background: var(--primary-600);
+      color: #fff;
+      border: none;
+      border-radius: 0.5rem;
       font-weight: 600;
-      color: var(--gray-900);
-      margin-top: 1.5rem;
-      margin-bottom: 0.5rem;
+      cursor: pointer;
     }
-    .disconnect-card p {
-      color: var(--gray-600);
-      margin-bottom: 2rem;
+    .loader {
+      width: 32px;
+      height: 32px;
+      border: 4px solid var(--gray-200);
+      border-top: 4px solid var(--primary-600);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
     }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    .mobile-nav {
-       padding-bottom: env(safe-area-inset-bottom);
-    }
-    .nav-item {
-       flex: 1;
-       display: flex;
-       flex-direction: column;
-       align-items: center;
-       justify-content: center;
-       background: transparent;
-       color: var(--gray-400);
-       padding: 0;
-       height: 100%;
-       border-radius: 0;
-    }
-    .nav-item:hover { background: transparent; }
-    .nav-item.active {
-       color: var(--primary-600);
-    }
-    .safe-area-bottom {
-       height: calc(4rem + env(safe-area-inset-bottom));
-    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   `]
 })
-export class App {
+export class App implements OnInit, OnDestroy {
   private router = inject(Router);
-  private displayNameService = inject(DisplayNameService);
   private signalrService = inject(SignalRService);
-  private participantService = inject(ParticipantService);
-  private audioAnalysisService = inject(AudioAnalysisService);
   private webrtcService = inject(WebRtcService);
   private chimesService = inject(ChimesService);
   private settingsService = inject(SettingsService);
-  private sanitizer = inject(DomSanitizer);
   
-  icons = ICONS;
-  homeIcon = this.sanitizer.bypassSecurityTrustHtml(ICONS.HOME);
-  
-  displayName = this.displayNameService.displayName;
+  private subscriptions = new Subscription();
+
   connectionStatus = this.signalrService.connectionStatus;
-  roomName = this.participantService.roomName;
   showSettings = signal(false);
-  activeTab = signal<'room' | 'chat' | 'settings'>('room');
+  isMobile = signal(false);
 
   constructor() {
-    this.signalrService.peerJoined$.subscribe(() => {
-      this.chimesService.playJoinChime();
-    });
+    this.checkWidth();
+  }
 
-    this.signalrService.peerLeft$.subscribe(() => {
+  ngOnInit() {
+    this.subscriptions.add(this.signalrService.peerJoined$.subscribe(() => {
+      this.chimesService.playJoinChime();
+    }));
+
+    this.subscriptions.add(this.signalrService.peerLeft$.subscribe(() => {
       this.chimesService.playLeaveChime();
-    });
+    }));
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.unsubscribe();
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    this.checkWidth();
+  }
+
+  private checkWidth() {
+    if (typeof window !== 'undefined') {
+      this.isMobile.set(window.innerWidth < 768);
+    }
   }
 
   rejoin() {

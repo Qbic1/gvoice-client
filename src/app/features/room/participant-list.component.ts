@@ -1,9 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DomSanitizer } from '@angular/platform-browser';
 import { ParticipantService } from '../../core/services/participant.service';
 import { SignalRService } from '../../core/services/signalr.service';
-import { ICONS } from '../../shared/icons';
+import { IconService } from '../../core/services/icon.service';
 
 @Component({
   selector: 'app-participant-list',
@@ -31,8 +30,8 @@ import { ICONS } from '../../shared/icons';
               {{ p.displayName }}
             </span>
             <div class="status-indicators">
-              <span *ngIf="p.isMuted" class="indicator muted" title="Muted" [innerHTML]="getMutedIcon()"></span>
-              <span *ngIf="p.isDeafened" class="indicator deafened" title="Deafened" [innerHTML]="getDeafenedIcon()"></span>
+              <span *ngIf="p.isMuted" class="indicator muted" title="Muted" [innerHTML]="icons.MIC_OFF"></span>
+              <span *ngIf="p.isDeafened" class="indicator deafened" title="Deafened" [innerHTML]="icons.DEAFEN"></span>
               <span *ngIf="p.isListenOnly" class="badge">Listen-only</span>
             </div>
           </div>
@@ -158,7 +157,7 @@ import { ICONS } from '../../shared/icons';
 })
 export class ParticipantListComponent {
   private signalrService = inject(SignalRService);
-  private sanitizer = inject(DomSanitizer);
+  icons = inject(IconService);
   participantService = inject(ParticipantService);
   
   participants = this.participantService.participants;
@@ -171,13 +170,5 @@ export class ParticipantListComponent {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     return colors[Math.abs(hash) % colors.length];
-  }
-
-  getMutedIcon() {
-    return this.sanitizer.bypassSecurityTrustHtml(ICONS.MIC_OFF);
-  }
-
-  getDeafenedIcon() {
-    return this.sanitizer.bypassSecurityTrustHtml(ICONS.DEAFEN);
   }
 }
