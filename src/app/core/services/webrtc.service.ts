@@ -20,7 +20,7 @@ export class WebRtcService {
   private remoteStreams = new Map<string, MediaStream>();
   
   // Audio Graph Management
-  private audioContext: AudioContext | null = null;
+  public audioContext: AudioContext | null = null;
   private participantGainNodes = new Map<string, GainNode>();
   private participantSourceNodes = new Map<string, MediaStreamAudioSourceNode>();
   private audioElements = new Map<string, HTMLAudioElement>();
@@ -52,6 +52,19 @@ export class WebRtcService {
     this.signalrService.peerLeft$.subscribe((peer) => {
       this.closePeerConnection(peer.connectionId);
     });
+
+    // Global interaction listener to resume AudioContext (autoplay policy)
+    if (this.isBrowser) {
+      const resumeAudio = () => {
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+          this.audioContext.resume();
+        }
+        // We don't remove it immediately because new nodes might need it later, 
+        // but browser usually only needs one interaction to unlock the context.
+      };
+      document.addEventListener('click', resumeAudio);
+      document.addEventListener('keydown', resumeAudio);
+    }
   }
 
   private initAudioContext() {
@@ -64,6 +77,7 @@ export class WebRtcService {
     if (!this.isBrowser) return null;
     if (this.localStream) return this.localStream;
 
+    this.initAudioContext();
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       this.localStream$.next(this.localStream);
@@ -292,12 +306,15 @@ export class WebRtcService {
     }
 
     // We still keep the HTMLAudioElement for autoplay policy handling and secondary fallback, 
-    // but we MUTE it so we don't hear double audio. The GainNode -> Destination handles the actual output.
+    // but we MUTE it so we don't hear double audio. 
+    // Attaching it to the DOM and calling play() is often required to keep the stream flowing.
     let audio = this.audioElements.get(connectionId);
     if (!audio) {
       audio = new Audio();
       audio.autoplay = true;
-      audio.muted = true; // IMPORTANT: Muted because we use Web Audio API for output
+      audio.muted = true; 
+      audio.style.display = 'none'; // Ensure it's hidden
+      document.body.appendChild(audio); // Append to DOM for better support (e.g. iOS)
       this.audioElements.set(connectionId, audio);
     }
 

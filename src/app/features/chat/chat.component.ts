@@ -1,14 +1,15 @@
-import { Component, inject, signal, ElementRef, ViewChild, AfterViewChecked } from '@angular/core';
+import { Component, inject, signal, ElementRef, ViewChild, AfterViewChecked, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SignalRService } from '../../core/services/signalr.service';
 import { DisplayNameService } from '../../core/services/display-name.service';
 import { ChatMessage } from '../../core/models/chat-message.model';
+import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LinkifyPipe],
   template: `
     <div class="chat-container">
       <div class="messages-list" #scrollContainer>
@@ -18,17 +19,28 @@ import { ChatMessage } from '../../core/models/chat-message.model';
               <span class="sender">{{ msg.displayName }} <span *ngIf="msg.isLocal">(You)</span></span>
               <span class="time">{{ msg.timestamp | date:'shortTime' }}</span>
             </div>
-            <div class="msg-content">{{ msg.message }}</div>
+            
+            <div class="msg-content">
+              <!-- Render as Image if it starts with data:image -->
+              <div *ngIf="isImage(msg.message)" class="image-bubble">
+                <img [src]="msg.message" alt="Shared image" (click)="openLightbox(msg.message)" />
+              </div>
+              
+              <!-- Render as Text with Linkify if it's NOT an image -->
+              <div *ngIf="!isImage(msg.message)" [innerHTML]="msg.message | linkify"></div>
+            </div>
           </div>
         </div>
       </div>
+      
       <form (submit)="sendMessage($event)" class="chat-input-form">
         <input 
           type="text" 
           [(ngModel)]="messageInput" 
           name="message" 
-          placeholder="Message room..." 
+          placeholder="Message or paste image..." 
           autocomplete="off"
+          (paste)="onPaste($event)"
         />
         <button type="submit" [disabled]="!messageInput.trim()">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
@@ -36,6 +48,12 @@ import { ChatMessage } from '../../core/models/chat-message.model';
           </svg>
         </button>
       </form>
+
+      <!-- Lightbox Overlay -->
+      <div *ngIf="lightboxImage()" class="lightbox-overlay" (click)="closeLightbox()">
+        <button class="close-lightbox" (click)="closeLightbox()">×</button>
+        <img [src]="lightboxImage()" (click)="$event.stopPropagation()" alt="Full size image" />
+      </div>
     </div>
   `,
   styles: [`
@@ -53,6 +71,7 @@ import { ChatMessage } from '../../core/models/chat-message.model';
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      position: relative;
     }
     @media (max-width: 768px) {
       .chat-container {
@@ -115,6 +134,33 @@ import { ChatMessage } from '../../core/models/chat-message.model';
       line-height: 1.4;
       word-break: break-word;
     }
+
+    .image-bubble {
+      margin-top: 0.5rem;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      max-width: 100%;
+    }
+    .image-bubble img {
+      display: block;
+      max-height: 200px;
+      max-width: 100%;
+      object-fit: cover;
+      transition: opacity 0.2s;
+    }
+    .image-bubble img:hover {
+      opacity: 0.9;
+    }
+
+    ::ng-deep .chat-link {
+      color: #3b82f6;
+      text-decoration: underline;
+    }
+    .local-message ::ng-deep .chat-link {
+      color: #60a5fa;
+    }
+
     .chat-input-form {
       display: flex;
       padding: 1rem;
@@ -155,6 +201,40 @@ import { ChatMessage } from '../../core/models/chat-message.model';
       color: #9ca3af;
       cursor: not-allowed;
     }
+
+    .lightbox-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 2rem;
+      animation: fadeIn 0.2s ease-out;
+    }
+    .lightbox-overlay img {
+      max-width: 100%;
+      max-height: 100%;
+      box-shadow: 0 0 50px rgba(0,0,0,0.5);
+      border-radius: 4px;
+    }
+    .close-lightbox {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 3rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
   `]
 })
 export class ChatComponent implements AfterViewChecked {
@@ -163,6 +243,7 @@ export class ChatComponent implements AfterViewChecked {
   
   messages = signal<ChatMessage[]>([]);
   messageInput = '';
+  lightboxImage = signal<string | null>(null);
 
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
 
@@ -188,11 +269,6 @@ export class ChatComponent implements AfterViewChecked {
       }));
       this.messages.set(mappedHistory);
     });
-    
-    this.signalrService.roomJoined$.subscribe(() => {
-      // We don't clear messages here anymore because history might have been received just before.
-      // If we need to clear messages when JOINING a new room, we should do it at the start of startConnection or joinRoom.
-    });
   }
 
   ngAfterViewChecked() {
@@ -205,6 +281,48 @@ export class ChatComponent implements AfterViewChecked {
       this.signalrService.sendChatMessage(this.messageInput.trim());
       this.messageInput = '';
     }
+  }
+
+  onPaste(event: ClipboardEvent) {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          // Check size (5MB limit)
+          if (file.size > 5 * 1024 * 1024) {
+            alert('Image is too large. Max size is 5MB.');
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = (e: any) => {
+            const base64Image = e.target.result;
+            this.signalrService.sendChatMessage(base64Image);
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    }
+  }
+
+  isImage(message: string): boolean {
+    return message.startsWith('data:image/');
+  }
+
+  openLightbox(image: string) {
+    this.lightboxImage.set(image);
+  }
+
+  closeLightbox() {
+    this.lightboxImage.set(null);
+  }
+
+  @HostListener('window:keydown.escape')
+  onEsc() {
+    this.closeLightbox();
   }
 
   private scrollToBottom(): void {

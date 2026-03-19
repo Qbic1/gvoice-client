@@ -1,5 +1,6 @@
 import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { WebRtcService } from './webrtc.service';
 
 @Injectable({
   providedIn: 'root'
@@ -7,15 +8,13 @@ import { isPlatformBrowser } from '@angular/common';
 export class ChimesService {
   private platformId = inject(PLATFORM_ID);
   private isBrowser = isPlatformBrowser(this.platformId);
-  private audioContext: AudioContext | null = null;
+  private webrtcService = inject(WebRtcService);
+
+  private get audioContext(): AudioContext | null {
+    return this.webrtcService.audioContext;
+  }
 
   constructor() {}
-
-  private initAudioContext() {
-    if (!this.audioContext && this.isBrowser) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-  }
 
   playJoinChime() {
     this.playTone([440, 554.37, 659.25], 0.1); // A4, C#5, E5 (A major)
@@ -27,7 +26,6 @@ export class ChimesService {
 
   private playTone(frequencies: number[], duration: number) {
     if (!this.isBrowser) return;
-    this.initAudioContext();
     if (!this.audioContext) return;
 
     if (this.audioContext.state === 'suspended') {

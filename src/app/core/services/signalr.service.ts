@@ -60,6 +60,20 @@ export class SignalRService {
       .withAutomaticReconnect()
       .build();
 
+    // Increase message size limit for large images
+    this.hubConnection.serverTimeoutInMilliseconds = 120000; // 120 seconds
+    this.hubConnection.keepAliveIntervalInMilliseconds = 15000;
+    
+    // This is the property that controls the maximum size of a message received FROM the server
+    // For sending TO the server, the server-side MaximumReceiveMessageSize is what matters most
+    // but we set this to be safe and consistent.
+    (this.hubConnection as any).contentDefaultMaxSize = 10 * 1024 * 1024; // 10MB
+    // @ts-ignore - access internal property for message size if needed
+    if (this.hubConnection['_connection']) {
+       // @ts-ignore
+       this.hubConnection['_connection'].maxReceiveMessageSize = 10 * 1024 * 1024;
+    }
+
     this.hubConnection.onclose((error) => {
       console.error('SignalR connection closed:', error);
       this.connectionStatus.set('Error');

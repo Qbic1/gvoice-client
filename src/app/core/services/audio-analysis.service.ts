@@ -16,7 +16,10 @@ export class AudioAnalysisService implements OnDestroy {
   private participantService = inject(ParticipantService);
   private signalrService = inject(SignalRService);
 
-  private audioContext: AudioContext | null = null;
+  private get audioContext(): AudioContext | null {
+    return this.webrtcService.audioContext;
+  }
+
   private analysers = new Map<string, { 
     analyser: AnalyserNode; 
     source: MediaStreamAudioSourceNode; 
@@ -84,9 +87,7 @@ export class AudioAnalysisService implements OnDestroy {
       this.teardownAnalysis(connectionId);
     }
 
-    if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
+    if (!this.audioContext) return;
 
     try {
       const source = this.audioContext.createMediaStreamSource(stream);
@@ -169,11 +170,6 @@ export class AudioAnalysisService implements OnDestroy {
 
     this.analysers.forEach((_, connectionId) => this.teardownAnalysis(connectionId));
     this.analysers.clear();
-
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = null;
-    }
 
     this.subscriptions.unsubscribe();
   }

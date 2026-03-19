@@ -1,7 +1,6 @@
 export const environment = {
   production: true,
   rootUrl: '/api',
-  turnPassword: '',
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     {
