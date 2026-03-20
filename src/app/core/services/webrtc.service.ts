@@ -2,6 +2,7 @@ import { Injectable, inject, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { SignalRService } from './signalr.service';
 import { ParticipantService } from './participant.service';
+import { AudioProcessorService } from './audio-processor.service';
 import { Subject, ReplaySubject, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment.development';
 
@@ -13,14 +14,18 @@ export class WebRtcService {
   private isBrowser = isPlatformBrowser(this.platformId);
   private signalrService = inject(SignalRService);
   private participantService = inject(ParticipantService);
+  private audioProcessorService = inject(AudioProcessorService);
 
   private peerConnections = new Map<string, RTCPeerConnection>();
   private pendingConnections = new Map<string, Promise<RTCPeerConnection>>();
   private localStream: MediaStream | null = null;
+  private localProcessedStream: MediaStream | null = null;
   private remoteStreams = new Map<string, MediaStream>();
 
   // Audio Graph Management
-  public audioContext: AudioContext | null = null;
+  public get audioContext(): AudioContext | null {
+    return this.audioProcessorService.audioContext;
+  }
   private participantGainNodes = new Map<string, GainNode>();
   private participantSourceNodes = new Map<string, MediaStreamAudioSourceNode>();
   private audioElements = new Map<string, HTMLAudioElement>();
@@ -68,9 +73,8 @@ export class WebRtcService {
   }
 
   private initAudioContext() {
-    if (!this.audioContext && this.isBrowser) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
+    // Accessing the getter will initialize the context if needed via AudioProcessorService
+    const ctx = this.audioContext;
   }
 
   async getLocalStream(): Promise<MediaStream | null> {
@@ -80,6 +84,10 @@ export class WebRtcService {
     this.initAudioContext();
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      
+      // Process local stream for sending to peers
+      this.localProcessedStream = this.audioProcessorService.processLocalStream(this.localStream);
+      
       this.localStream$.next(this.localStream);
 
       if (this.isPttMode()) {
@@ -196,8 +204,9 @@ export class WebRtcService {
       this.playRemoteStream(connectionId, stream);
     };
 
-    if (stream) {
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+    const tracksStream = this.localProcessedStream ?? stream;
+    if (tracksStream) {
+      tracksStream.getTracks().forEach(track => pc.addTrack(track, tracksStream));
     }
 
     if (isOfferor) {
@@ -270,6 +279,8 @@ export class WebRtcService {
         audio.srcObject = null;
         this.audioElements.delete(connectionId);
       }
+
+      this.audioProcessorService.cleanupRemote(connectionId);
     }
   }
 
@@ -321,9 +332,12 @@ export class WebRtcService {
     this.initAudioContext();
 
     if (this.audioContext) {
+      // Process remote stream (e.g. High Pass Filter)
+      const processedStream = this.audioProcessorService.processRemoteStream(connectionId, stream);
+
       // Create Audio Graph for individual volume control (including boost > 1.0)
       try {
-        const source = this.audioContext.createMediaStreamSource(stream);
+        const source = this.audioContext.createMediaStreamSource(processedStream);
         const gainNode = this.audioContext.createGain();
 
         source.connect(gainNode);
@@ -335,7 +349,7 @@ export class WebRtcService {
         // Apply initial volume (from storage)
         this.applyParticipantVolume(connectionId);
 
-        this.startVAD(connectionId, stream);
+        this.startVAD(connectionId, processedStream);
 
         // Resume context on interaction if needed
         if (this.audioContext.state === 'suspended') {

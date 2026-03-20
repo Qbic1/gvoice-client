@@ -145,4 +145,10 @@ export class SignalRService {
       await this.hubConnection.invoke('UpdateState', stateType, value);
     }
   }
+
+  async updateAudioSettings(settings: { enableAudioEnhancements: boolean, noiseGateThreshold: number }) {
+    if (this.hubConnection?.state === signalR.HubConnectionState.Connected) {
+      await this.hubConnection.invoke('UpdateAudioSettings', settings);
+    }
+  }
 }
