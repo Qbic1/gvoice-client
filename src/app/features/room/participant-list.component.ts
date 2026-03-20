@@ -30,9 +30,7 @@ import { Participant } from '../../core/models/participant.model';
           </div>
 
           <div class="participant-info">
-            <span class="name">
-              {{ p.displayName }}
-            </span>
+            <span class="name">{{ p.displayName }}</span>
             <div class="status-indicators">
               <span *ngIf="p.isMuted" class="indicator muted" title="Muted" [innerHTML]="icons.MIC_OFF"></span>
               <span *ngIf="p.isDeafened" class="indicator deafened" title="Deafened" [innerHTML]="icons.DEAFEN"></span>
@@ -45,7 +43,7 @@ import { Participant } from '../../core/models/participant.model';
         </div>
       </div>
 
-      <!-- Volume Control Modal/Popover -->
+      <!-- Volume Control Modal -->
       <div *ngIf="selectedParticipant()" class="volume-overlay" (click)="closeVolumeControl()">
         <div class="volume-card" (click)="$event.stopPropagation()">
           <div class="vol-header">
@@ -69,9 +67,8 @@ import { Participant } from '../../core/models/participant.model';
                 <span>200%</span>
               </div>
             </div>
-            
             <div class="vol-value">
-               Current: <strong>{{ selectedParticipant()?.volume ?? 100 }}%</strong>
+              Current: <strong>{{ selectedParticipant()?.volume ?? 100 }}%</strong>
             </div>
           </div>
 
@@ -87,6 +84,7 @@ import { Participant } from '../../core/models/participant.model';
       width: 100%;
       position: relative;
     }
+
     .list-header {
       display: flex;
       justify-content: space-between;
@@ -99,25 +97,27 @@ import { Participant } from '../../core/models/participant.model';
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--gray-500);
+      color: var(--text-secondary);
       font-weight: 600;
     }
     .count {
       font-size: 0.75rem;
-      background: var(--gray-200);
+      background: var(--bg-muted);
       padding: 2px 8px;
       border-radius: 999px;
-      color: var(--gray-600);
+      color: var(--text-secondary);
       font-weight: 600;
     }
+
     .cards-grid {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
     }
+
     .participant-card {
-      background: #fff;
-      border: 1px solid var(--gray-100);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
       border-radius: 0.625rem;
       padding: 0.75rem;
       display: flex;
@@ -127,13 +127,19 @@ import { Participant } from '../../core/models/participant.model';
       cursor: pointer;
     }
     .participant-card:hover {
-      border-color: var(--primary-300);
-      background: var(--gray-50);
+      border-color: var(--accent);
+      background: var(--accent-subtle);
     }
     .local-user {
-      background: var(--primary-50);
+      background: var(--accent-subtle);
+      border-color: var(--border);
       cursor: default;
     }
+    .local-user:hover {
+      border-color: var(--border);
+      background: var(--accent-subtle);
+    }
+
     .avatar {
       width: 38px;
       height: 38px;
@@ -149,20 +155,18 @@ import { Participant } from '../../core/models/participant.model';
     }
     .speaking-ring {
       position: absolute;
-      top: -3px;
-      left: -3px;
-      right: -3px;
-      bottom: -3px;
+      top: -3px; left: -3px; right: -3px; bottom: -3px;
       border: 2px solid var(--success-500);
       border-radius: 50%;
       animation: pulse-ring 1.5s cubic-bezier(0.24, 0, 0.38, 1) infinite;
       box-shadow: 0 0 10px var(--success-500);
     }
     @keyframes pulse-ring {
-      0% { transform: scale(0.95); opacity: 1; }
-      70% { transform: scale(1.1); opacity: 0; }
+      0%   { transform: scale(0.95); opacity: 1; }
+      70%  { transform: scale(1.1);  opacity: 0; }
       100% { transform: scale(0.95); opacity: 0; }
     }
+
     .participant-info {
       flex: 1;
       min-width: 0;
@@ -175,8 +179,9 @@ import { Participant } from '../../core/models/participant.model';
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: var(--gray-800);
+      color: var(--text-primary);
     }
+
     .status-indicators {
       display: flex;
       align-items: center;
@@ -187,16 +192,17 @@ import { Participant } from '../../core/models/participant.model';
       font-size: 10px;
       padding: 2px 6px;
       border-radius: 4px;
-      background: var(--secondary-200);
-      color: var(--secondary-700);
+      background: var(--bg-muted);
+      color: var(--text-secondary);
       font-weight: 600;
     }
     .indicator {
       display: flex;
       align-items: center;
-      color: var(--gray-400);
+      color: var(--text-muted);
     }
-    .indicator.muted, .indicator.deafened {
+    .indicator.muted,
+    .indicator.deafened {
       color: var(--error-500);
     }
     ::ng-deep .indicator svg {
@@ -206,17 +212,17 @@ import { Participant } from '../../core/models/participant.model';
     .vol-indicator {
       font-size: 0.65rem;
       font-weight: 700;
-      color: var(--primary-600);
-      background: var(--primary-50);
+      color: var(--accent);
+      background: var(--accent-subtle);
       padding: 1px 4px;
       border-radius: 4px;
     }
 
-    /* Volume Overlay */
+    /* ── Volume overlay ── */
     .volume-overlay {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.4);
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(2px);
       z-index: 1000;
       display: flex;
@@ -225,7 +231,8 @@ import { Participant } from '../../core/models/participant.model';
       padding: 1.5rem;
     }
     .volume-card {
-      background: #fff;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
       border-radius: 1rem;
       width: 100%;
       max-width: 320px;
@@ -235,25 +242,39 @@ import { Participant } from '../../core/models/participant.model';
     }
     @keyframes popIn {
       from { transform: scale(0.9); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
+      to   { transform: scale(1);   opacity: 1; }
     }
+
     .vol-header {
       padding: 1rem 1.25rem;
-      border-bottom: 1px solid var(--gray-100);
+      border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .vol-header h4 { margin: 0; font-size: 0.875rem; color: var(--gray-600); }
-    .close-x {
-      background: none; border: none; font-size: 1.5rem; color: var(--gray-400); cursor: pointer; line-height: 1;
+    .vol-header h4 {
+      margin: 0;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-secondary);
     }
+    .close-x {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .close-x:hover { color: var(--text-primary); }
+
     .vol-body { padding: 1.5rem; }
     .slider-container { margin-bottom: 1.5rem; }
     .vol-slider {
       width: 100%;
       height: 6px;
-      background: var(--gray-200);
+      background: var(--bg-muted);
       border-radius: 3px;
       appearance: none;
       outline: none;
@@ -262,9 +283,18 @@ import { Participant } from '../../core/models/participant.model';
       appearance: none;
       width: 18px;
       height: 18px;
-      background: var(--primary-600);
+      background: var(--accent);
       border-radius: 50%;
       cursor: pointer;
+      box-shadow: var(--shadow-sm);
+    }
+    .vol-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
       box-shadow: var(--shadow-sm);
     }
     .slider-labels {
@@ -272,27 +302,38 @@ import { Participant } from '../../core/models/participant.model';
       justify-content: space-between;
       margin-top: 0.5rem;
       font-size: 0.65rem;
-      color: var(--gray-400);
+      color: var(--text-muted);
       font-weight: 600;
     }
-    .vol-value { text-align: center; color: var(--gray-800); }
+    .vol-value {
+      text-align: center;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+    }
+
     .vol-footer {
       padding: 1rem;
-      background: var(--gray-50);
+      background: var(--bg-muted);
       display: flex;
       justify-content: center;
+      border-top: 1px solid var(--border);
     }
     .reset-btn {
-      background: #fff;
-      border: 1px solid var(--gray-300);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
       padding: 0.5rem 1rem;
       border-radius: 0.5rem;
       font-size: 0.75rem;
       font-weight: 600;
-      color: var(--gray-700);
+      color: var(--text-secondary);
       cursor: pointer;
+      transition: all 0.15s;
     }
-    .reset-btn:hover { background: var(--gray-100); }
+    .reset-btn:hover {
+      background: var(--bg-base);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
   `]
 })
 export class ParticipantListComponent {
@@ -300,10 +341,9 @@ export class ParticipantListComponent {
   private webrtcService = inject(WebRtcService);
   icons = inject(IconService);
   participantService = inject(ParticipantService);
-  
+
   participants = this.participantService.participants;
   localConnectionId = this.signalrService.connectionId;
-
   selectedParticipant = signal<Participant | null>(null);
 
   getAvatarColor(name: string): string {
@@ -328,15 +368,11 @@ export class ParticipantListComponent {
     const p = this.selectedParticipant();
     if (p) {
       this.webrtcService.setParticipantVolume(p.connectionId, value);
-      // Update local signal to reflect change in real-time in the modal
       this.selectedParticipant.set({ ...p, volume: value });
     }
   }
 
   resetVolume() {
-    const p = this.selectedParticipant();
-    if (p) {
-      this.onVolumeChange(100);
-    }
+    if (this.selectedParticipant()) this.onVolumeChange(100);
   }
 }

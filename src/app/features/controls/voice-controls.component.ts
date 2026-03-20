@@ -43,20 +43,20 @@ import { IconService } from '../../core/services/icon.service';
         </button>
       </div>
 
-      <!-- Mobile Toggle PTT Button -->
+      <!-- Mobile PTT Button -->
       <div *ngIf="isMobile() && isPttMode()" class="mobile-ptt-container mt-6">
-         <button 
-           (click)="toggleMobilePtt()" 
-           [class.transmitting]="isPttActive()"
-           class="mobile-ptt-btn"
-         >
-           <div class="inner-circle">
-             <span class="icon" [innerHTML]="getMicIconLarge()"></span>
-             <span class="ptt-label">{{ isPttActive() ? 'LIVE' : 'TAP TO TALK' }}</span>
-           </div>
-         </button>
+        <button 
+          (click)="toggleMobilePtt()" 
+          [class.transmitting]="isPttActive()"
+          class="mobile-ptt-btn"
+        >
+          <div class="inner-circle">
+            <span class="icon" [innerHTML]="getMicIconLarge()"></span>
+            <span class="ptt-label">{{ isPttActive() ? 'LIVE' : 'TAP TO TALK' }}</span>
+          </div>
+        </button>
       </div>
-      
+
       <div class="mode-label mt-2" [class.ptt]="isPttMode()">
         {{ isPttMode() ? 'PTT Mode' : 'Open Mic' }}
       </div>
@@ -70,9 +70,11 @@ import { IconService } from '../../core/services/icon.service';
       gap: 0.5rem;
       width: 100%;
     }
+
+    /* ── Button group ── */
     .button-group {
       display: flex;
-      background: #f3f4f6;
+      background: var(--bg-muted);
       padding: 4px;
       border-radius: 12px;
       gap: 4px;
@@ -85,35 +87,41 @@ import { IconService } from '../../core/services/icon.service';
       height: 48px;
       border: none;
       border-radius: 8px;
-      background: #fff;
+      background: var(--bg-surface);
       cursor: pointer;
       transition: all 0.2s;
-      color: #374151;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      color: var(--text-secondary);
+      box-shadow: var(--shadow-sm);
     }
     .control-btn:hover:not(:disabled) {
-      background: #f9fafb;
+      background: var(--bg-base);
+      color: var(--text-primary);
       transform: translateY(-1px);
     }
+
+    /* ── States ── */
     .control-btn.active {
-      color: #10b981;
+      color: var(--success-500);
     }
     .control-btn.muted {
-      color: #ef4444;
-      background: #fee2e2;
+      color: var(--error-500);
+      background: color-mix(in srgb, var(--error-500) 12%, var(--bg-surface));
     }
     .ptt-toggle.ptt-active {
-      background: #111827;
-      color: #fff;
+      background: var(--text-primary);
+      color: var(--bg-surface);
     }
-    .ptt-toggle.ptt-active:hover {
-      background: #374151;
+    .ptt-toggle.ptt-active:hover:not(:disabled) {
+      background: var(--text-secondary);
+      color: var(--bg-surface);
     }
     .control-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
-      background: #e5e7eb;
+      background: var(--bg-muted);
+      color: var(--text-muted);
     }
+
     .icon {
       display: flex;
       align-items: center;
@@ -123,64 +131,66 @@ import { IconService } from '../../core/services/icon.service';
       font-size: 0.75rem;
       font-weight: 800;
     }
+
+    /* ── Mode label ── */
     .mode-label {
       font-size: 0.7rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #6b7280;
+      color: var(--text-muted);
     }
     .mode-label.ptt {
-      color: #111827;
+      color: var(--text-primary);
     }
 
     .mt-2 { margin-top: 0.5rem; }
     .mt-6 { margin-top: 1.5rem; }
 
-    /* Mobile PTT Styles */
+    /* ── Mobile PTT ── */
     .mobile-ptt-container {
       width: 100%;
       display: flex;
       justify-content: center;
     }
     .mobile-ptt-btn {
-       width: 140px;
-       height: 140px;
-       border-radius: 50%;
-       background: #e5e7eb;
-       border: 8px solid #f3f4f6;
-       padding: 0;
-       cursor: pointer;
-       display: flex;
-       align-items: center;
-       justify-content: center;
-       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-       box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: var(--bg-muted);
+      border: 8px solid var(--bg-base);
+      padding: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: var(--shadow-md);
     }
     .inner-circle {
-       width: 100%;
-       height: 100%;
-       border-radius: 50%;
-       display: flex;
-       flex-direction: column;
-       align-items: center;
-       justify-content: center;
-       gap: 8px;
-       color: #6b7280;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--text-muted);
     }
     .mobile-ptt-btn.transmitting {
-       background: #111827;
-       border-color: #374151;
-       transform: scale(0.95);
-       box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+      background: var(--text-primary);
+      border-color: var(--text-secondary);
+      transform: scale(0.95);
+      box-shadow: 0 0 20px color-mix(in srgb, var(--success-500) 30%, transparent);
     }
     .mobile-ptt-btn.transmitting .inner-circle {
-       color: #10b981;
+      color: var(--success-500);
     }
     .ptt-label {
-       font-size: 0.65rem;
-       font-weight: 900;
-       letter-spacing: 0.1em;
+      font-size: 0.65rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
     }
   `]
 })
@@ -188,7 +198,7 @@ export class VoiceControlsComponent implements OnInit {
   private webrtcService = inject(WebRtcService);
   private participantService = inject(ParticipantService);
   icons = inject(IconService);
-  
+
   isMuted = this.webrtcService.isMuted;
   isPttMode = this.webrtcService.isPttMode;
   isPttActive = this.webrtcService.isPttActive;
@@ -197,14 +207,10 @@ export class VoiceControlsComponent implements OnInit {
 
   isMobile = signal(false);
 
-  ngOnInit() {
-    this.checkWidth();
-  }
+  ngOnInit() { this.checkWidth(); }
 
   @HostListener('window:resize')
-  onResize() {
-    this.checkWidth();
-  }
+  onResize() { this.checkWidth(); }
 
   private checkWidth() {
     if (typeof window !== 'undefined') {
@@ -212,25 +218,10 @@ export class VoiceControlsComponent implements OnInit {
     }
   }
 
-  toggleMute() {
-    this.hapticFeedback();
-    this.webrtcService.toggleMute();
-  }
-
-  togglePttMode() {
-    this.hapticFeedback();
-    this.webrtcService.togglePttMode();
-  }
-
-  toggleDeafen() {
-    this.hapticFeedback();
-    this.webrtcService.toggleDeafen();
-  }
-
-  toggleMobilePtt() {
-    this.hapticFeedback();
-    this.webrtcService.setPttActive(!this.isPttActive());
-  }
+  toggleMute()     { this.hapticFeedback(); this.webrtcService.toggleMute(); }
+  togglePttMode()  { this.hapticFeedback(); this.webrtcService.togglePttMode(); }
+  toggleDeafen()   { this.hapticFeedback(); this.webrtcService.toggleDeafen(); }
+  toggleMobilePtt(){ this.hapticFeedback(); this.webrtcService.setPttActive(!this.isPttActive()); }
 
   private hapticFeedback() {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -245,8 +236,6 @@ export class VoiceControlsComponent implements OnInit {
 
   getMicIconLarge() {
     if (this.isListenOnly()) return this.icons.BLOCK;
-    // Note: IconService provides 20x20 icons. For Large we might want 32x32.
-    // However, simplified approach for now is using same icon, CSS can scale it if needed.
     return (this.isPttActive() || !this.isMuted()) ? this.icons.MIC : this.icons.MIC_OFF;
   }
 

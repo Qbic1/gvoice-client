@@ -9,6 +9,7 @@ import { SignalRService } from './core/services/signalr.service';
 import { WebRtcService } from './core/services/webrtc.service';
 import { ChimesService } from './core/services/chimes.service';
 import { SettingsService } from './core/services/settings.service';
+import { ThemeService } from './core/services/theme.service'; // 👈 add
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -56,12 +57,12 @@ import { Subscription } from 'rxjs';
       display: block;
       height: 100dvh;
       overflow: hidden;
-      background: var(--gray-100);
+      background: var(--bg-base);
     }
     .app-container {
       height: 100%;
       font-family: var(--font-family);
-      color: var(--gray-800);
+      color: var(--text-primary);
     }
     .status-container {
       display: flex;
@@ -70,13 +71,14 @@ import { Subscription } from 'rxjs';
       justify-content: center;
       height: 100dvh;
       gap: 1rem;
+      color: var(--text-secondary);
     }
     .room-container {
       height: 100%;
     }
     .disconnect-overlay {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      inset: 0;
       background: rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(4px);
       display: flex;
@@ -85,34 +87,61 @@ import { Subscription } from 'rxjs';
       z-index: 9999;
     }
     .disconnect-card {
-      background: #fff;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
       padding: 2.5rem;
       border-radius: var(--border-radius);
+      box-shadow: var(--shadow-lg);
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
       max-width: 400px;
+      color: var(--text-primary);
     }
-    .error-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .disconnect-card h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1.125rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+    }
+    .disconnect-card p {
+      margin: 0 0 1.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .error-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
     .primary-btn {
       padding: 0.75rem 1.5rem;
-      background: var(--primary-600);
+      background: var(--accent);
       color: #fff;
       border: none;
       border-radius: 0.5rem;
       font-weight: 600;
+      font-size: 0.875rem;
       cursor: pointer;
+      transition: all 0.2s;
+    }
+    .primary-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
     }
     .loader {
       width: 32px;
       height: 32px;
-      border: 4px solid var(--gray-200);
-      border-top: 4px solid var(--primary-600);
+      border: 4px solid var(--border);
+      border-top: 4px solid var(--accent);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes spin {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   `]
 })
 export class App implements OnInit, OnDestroy {
@@ -121,7 +150,9 @@ export class App implements OnInit, OnDestroy {
   private webrtcService = inject(WebRtcService);
   private chimesService = inject(ChimesService);
   private settingsService = inject(SettingsService);
-  
+  private themeService = inject(ThemeService); // 👈 eagerly instantiates the service so the
+                                               //    data-theme attribute is set before first paint
+
   private subscriptions = new Subscription();
 
   connectionStatus = this.signalrService.connectionStatus;
@@ -166,9 +197,7 @@ export class App implements OnInit, OnDestroy {
   onKeyDown(event: KeyboardEvent) {
     if (this.shouldSuppress(event)) return;
     if (event.code === this.settingsService.pttKey()) {
-      if (this.webrtcService.isPttMode()) {
-        event.preventDefault();
-      }
+      if (this.webrtcService.isPttMode()) event.preventDefault();
       this.webrtcService.setPttActive(true);
     }
   }
@@ -177,9 +206,7 @@ export class App implements OnInit, OnDestroy {
   onKeyUp(event: KeyboardEvent) {
     if (this.shouldSuppress(event)) return;
     if (event.code === this.settingsService.pttKey()) {
-      if (this.webrtcService.isPttMode()) {
-        event.preventDefault();
-      }
+      if (this.webrtcService.isPttMode()) event.preventDefault();
       this.webrtcService.setPttActive(false);
     }
   }
@@ -187,8 +214,8 @@ export class App implements OnInit, OnDestroy {
   private shouldSuppress(event: KeyboardEvent): boolean {
     const target = event.target as HTMLElement;
     return (
-      target.tagName === 'INPUT' || 
-      target.tagName === 'TEXTAREA' || 
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
       target.isContentEditable ||
       this.showSettings()
     );

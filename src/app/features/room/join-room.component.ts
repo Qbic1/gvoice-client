@@ -65,13 +65,14 @@ import { DomSanitizer } from '@angular/platform-browser';
       justify-content: center;
       width: 100%;
       height: 100%;
-      background-color: var(--gray-100);
+      background-color: var(--bg-base);
     }
     .join-container {
       width: 100%;
       max-width: 400px;
       padding: 2.5rem;
-      background: #fff;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
       border-radius: var(--border-radius);
       box-shadow: var(--shadow-lg);
       text-align: center;
@@ -81,6 +82,7 @@ import { DomSanitizer } from '@angular/platform-browser';
         height: 100%;
         max-width: none;
         border-radius: 0;
+        border: none;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -97,11 +99,11 @@ import { DomSanitizer } from '@angular/platform-browser';
     h1 {
       font-weight: 800;
       font-size: 1.875rem;
-      color: var(--gray-900);
+      color: var(--text-primary);
       margin: 0;
     }
     p {
-      color: var(--gray-600);
+      color: var(--text-secondary);
       margin-bottom: 2rem;
     }
     .error-banner {
@@ -119,16 +121,27 @@ import { DomSanitizer } from '@angular/platform-browser';
     input[type="text"], input[type="password"] {
       width: 100%;
       padding: 0.75rem 1rem;
-      border: 1px solid var(--gray-300);
+      border: 1px solid var(--border);
       border-radius: 0.5rem;
       margin-bottom: 1rem;
       font-size: 1rem;
+      background: var(--bg-base);
+      color: var(--text-primary);
       transition: all 0.2s ease;
     }
+    input[type="text"]::placeholder,
+    input[type="password"]::placeholder {
+      color: var(--text-muted);
+    }
     input[type="text"]:focus, input[type="password"]:focus {
-      outline: 2px solid var(--primary-400);
+      outline: 2px solid var(--accent);
       border-color: transparent;
       box-shadow: none;
+    }
+    input[type="text"]:disabled, input[type="password"]:disabled {
+      background: var(--bg-muted);
+      color: var(--text-muted);
+      cursor: not-allowed;
     }
     .listen-only-label {
       display: flex;
@@ -136,7 +149,7 @@ import { DomSanitizer } from '@angular/platform-browser';
       gap: 0.5rem;
       font-size: 0.875rem;
       margin-bottom: 1.5rem;
-      color: var(--gray-700);
+      color: var(--text-secondary);
       cursor: pointer;
     }
     .field-error {
@@ -148,7 +161,7 @@ import { DomSanitizer } from '@angular/platform-browser';
     }
     button[type="submit"] {
       padding: 0.875rem 1.5rem;
-      background: var(--primary-600);
+      background: var(--accent);
       color: #fff;
       border: none;
       border-radius: 0.5rem;
@@ -158,13 +171,14 @@ import { DomSanitizer } from '@angular/platform-browser';
       transition: all 0.2s ease;
       box-shadow: var(--shadow-sm);
     }
-    button[type="submit"]:hover {
-      background: var(--primary-700);
+    button[type="submit"]:hover:not(:disabled) {
+      background: var(--accent-hover);
       box-shadow: var(--shadow-md);
       transform: translateY(-1px);
     }
     button[type="submit"]:disabled {
-      background-color: var(--gray-300);
+      background: var(--bg-muted);
+      color: var(--text-muted);
       cursor: not-allowed;
       box-shadow: none;
       transform: none;
@@ -172,30 +186,26 @@ import { DomSanitizer } from '@angular/platform-browser';
     .home-btn {
       padding: 0.4rem;
       background: transparent;
-      color: var(--gray-500);
-      border: 1px solid var(--gray-200);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
       border-radius: 0.5rem;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: none;
-      transform: none;
       flex-shrink: 0;
       transition: all 0.2s ease;
     }
     .home-btn:hover {
-      background: var(--gray-100);
-      color: var(--gray-800);
-      transform: none;
-      box-shadow: none;
+      background: var(--bg-muted);
+      color: var(--text-primary);
     }
     code {
-      background: var(--gray-100);
+      background: var(--accent-subtle);
       padding: 0.1rem 0.4rem;
       border-radius: 0.25rem;
       font-size: 0.9em;
-      color: var(--primary-600);
+      color: var(--accent);
     }
   `]
 })
@@ -265,9 +275,7 @@ export class JoinRoomComponent implements OnInit, OnDestroy {
     if (paramId) {
       this.roomId = paramId;
       const savedPassword = localStorage.getItem(`${this.PWD_STORAGE_KEY_PREFIX}${paramId}`);
-      if (savedPassword) {
-        this.roomPassword = savedPassword;
-      }
+      if (savedPassword) this.roomPassword = savedPassword;
       return;
     }
 
@@ -278,9 +286,7 @@ export class JoinRoomComponent implements OnInit, OnDestroy {
     if (roomIndex !== -1 && segments[roomIndex + 1]) {
       this.roomId = segments[roomIndex + 1];
       const savedPassword = localStorage.getItem(`${this.PWD_STORAGE_KEY_PREFIX}${this.roomId}`);
-      if (savedPassword) {
-        this.roomPassword = savedPassword;
-      }
+      if (savedPassword) this.roomPassword = savedPassword;
     }
   }
 
@@ -296,16 +302,11 @@ export class JoinRoomComponent implements OnInit, OnDestroy {
 
     try {
       const connected = await this.signalrService.startConnection(this.roomId);
-      if (!connected) {
-        this.isConnecting = false;
-        return;
-      }
+      if (!connected) { this.isConnecting = false; return; }
 
       if (!this.isListenOnly) {
         const stream = await this.webrtcService.getLocalStream();
-        if (!stream) {
-          this.isListenOnly = true;
-        }
+        if (!stream) this.isListenOnly = true;
       }
 
       await this.signalrService.joinRoom(this.roomId, this.roomPassword, name, this.isListenOnly);

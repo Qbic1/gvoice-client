@@ -19,20 +19,16 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
               <span class="sender">{{ msg.displayName }} <span *ngIf="msg.isLocal">(You)</span></span>
               <span class="time">{{ msg.timestamp | date:'shortTime' }}</span>
             </div>
-            
             <div class="msg-content">
-              <!-- Render as Image if it starts with data:image -->
               <div *ngIf="isImage(msg.message)" class="image-bubble">
                 <img [src]="msg.message" alt="Shared image" (click)="openLightbox(msg.message)" />
               </div>
-              
-              <!-- Render as Text with Linkify if it's NOT an image -->
               <div *ngIf="!isImage(msg.message)" [innerHTML]="msg.message | linkify"></div>
             </div>
           </div>
         </div>
       </div>
-      
+
       <form (submit)="sendMessage($event)" class="chat-input-form">
         <input 
           type="text" 
@@ -49,7 +45,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
         </button>
       </form>
 
-      <!-- Lightbox Overlay -->
+      <!-- Lightbox -->
       <div *ngIf="lightboxImage()" class="lightbox-overlay" (click)="closeLightbox()">
         <button class="close-lightbox" (click)="closeLightbox()">×</button>
         <img [src]="lightboxImage()" (click)="$event.stopPropagation()" alt="Full size image" />
@@ -62,15 +58,16 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       height: 100%;
       min-height: 0;
     }
+
     .chat-container {
       display: flex;
       flex-direction: column;
       height: 100%;
-      background: #fff;
-      border: 1px solid #e5e7eb;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      box-shadow: var(--shadow-sm);
       position: relative;
     }
     @media (max-width: 768px) {
@@ -79,6 +76,8 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
         border-radius: 0;
       }
     }
+
+    /* ── Messages ── */
     .messages-list {
       flex: 1;
       padding: 1.5rem;
@@ -86,13 +85,12 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       display: flex;
       flex-direction: column;
       gap: 1rem;
-      background: #fff;
+      background: var(--bg-base);
     }
     @media (max-width: 768px) {
-      .messages-list {
-         padding: 1rem;
-      }
+      .messages-list { padding: 1rem; }
     }
+
     .message-wrapper {
       display: flex;
       flex-direction: column;
@@ -101,19 +99,27 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
     .local-wrapper {
       align-items: flex-end;
     }
+
+    /* Remote bubble */
     .message-item {
       max-width: 75%;
       padding: 0.75rem 1rem;
       border-radius: 12px;
-      background: #f3f4f6;
       border-bottom-left-radius: 2px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
     }
+
+    /* Local bubble */
     .local-message {
-      background: #111827;
+      background: var(--accent);
       color: #fff;
+      border-color: transparent;
       border-bottom-left-radius: 12px;
       border-bottom-right-radius: 2px;
     }
+
     .msg-header {
       display: flex;
       justify-content: space-between;
@@ -125,9 +131,6 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       text-transform: uppercase;
       letter-spacing: 0.025em;
     }
-    .local-message .msg-header {
-      color: #9ca3af;
-    }
     .sender { font-weight: 700; }
     .msg-content {
       font-size: 0.9375rem;
@@ -135,6 +138,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       word-break: break-word;
     }
 
+    /* ── Images ── */
     .image-bubble {
       margin-top: 0.5rem;
       border-radius: 8px;
@@ -149,36 +153,42 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       object-fit: cover;
       transition: opacity 0.2s;
     }
-    .image-bubble img:hover {
-      opacity: 0.9;
-    }
+    .image-bubble img:hover { opacity: 0.9; }
 
+    /* ── Links ── */
     ::ng-deep .chat-link {
-      color: #3b82f6;
+      color: var(--accent);
       text-decoration: underline;
     }
     .local-message ::ng-deep .chat-link {
-      color: #60a5fa;
+      color: #fff;
+      opacity: 0.85;
     }
 
+    /* ── Input ── */
     .chat-input-form {
       display: flex;
       padding: 1rem;
-      background: #fff;
-      border-top: 1px solid #e5e7eb;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
       gap: 0.75rem;
     }
     .chat-input-form input {
       flex: 1;
       padding: 0.625rem 1rem;
-      border: 1px solid #d1d5db;
+      border: 1px solid var(--border);
       border-radius: 8px;
       font-size: 0.9375rem;
+      background: var(--bg-base);
+      color: var(--text-primary);
       transition: border-color 0.2s;
+    }
+    .chat-input-form input::placeholder {
+      color: var(--text-muted);
     }
     .chat-input-form input:focus {
       outline: none;
-      border-color: #000;
+      border-color: var(--accent);
     }
     .chat-input-form button {
       display: flex;
@@ -186,26 +196,28 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       justify-content: center;
       width: 40px;
       height: 40px;
-      background: #000;
+      background: var(--accent);
       color: #fff;
       border: none;
       border-radius: 8px;
       cursor: pointer;
       transition: background 0.2s;
+      flex-shrink: 0;
     }
     .chat-input-form button:hover:not(:disabled) {
-      background: #1f2937;
+      background: var(--accent-hover);
     }
     .chat-input-form button:disabled {
-      background: #e5e7eb;
-      color: #9ca3af;
+      background: var(--bg-muted);
+      color: var(--text-muted);
       cursor: not-allowed;
     }
 
+    /* ── Lightbox ── */
     .lightbox-overlay {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.9);
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -216,7 +228,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
     .lightbox-overlay img {
       max-width: 100%;
       max-height: 100%;
-      box-shadow: 0 0 50px rgba(0,0,0,0.5);
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
       border-radius: 4px;
     }
     .close-lightbox {
@@ -229,18 +241,21 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       font-size: 3rem;
       cursor: pointer;
       line-height: 1;
+      opacity: 0.8;
+      transition: opacity 0.15s;
     }
+    .close-lightbox:hover { opacity: 1; }
 
     @keyframes fadeIn {
       from { opacity: 0; }
-      to { opacity: 1; }
+      to   { opacity: 1; }
     }
   `]
 })
 export class ChatComponent implements AfterViewChecked {
   private signalrService = inject(SignalRService);
   private displayNameService = inject(DisplayNameService);
-  
+
   messages = signal<ChatMessage[]>([]);
   messageInput = '';
   lightboxImage = signal<string | null>(null);
@@ -250,7 +265,6 @@ export class ChatComponent implements AfterViewChecked {
   constructor() {
     this.signalrService.receiveChatMessage$.subscribe(data => {
       const currentLocalName = this.displayNameService.displayName();
-      
       this.messages.update(list => [...list, {
         displayName: data.displayName,
         message: data.message,
@@ -261,19 +275,16 @@ export class ChatComponent implements AfterViewChecked {
 
     this.signalrService.receiveChatHistory$.subscribe(history => {
       const currentLocalName = this.displayNameService.displayName();
-      const mappedHistory = history.map(msg => ({
+      this.messages.set(history.map(msg => ({
         displayName: msg.displayName,
         message: msg.message,
         timestamp: new Date(msg.timestamp),
         isLocal: msg.displayName === currentLocalName
-      }));
-      this.messages.set(mappedHistory);
+      })));
     });
   }
 
-  ngAfterViewChecked() {
-    this.scrollToBottom();
-  }
+  ngAfterViewChecked() { this.scrollToBottom(); }
 
   sendMessage(event: Event) {
     event.preventDefault();
@@ -286,50 +297,28 @@ export class ChatComponent implements AfterViewChecked {
   onPaste(event: ClipboardEvent) {
     const items = event.clipboardData?.items;
     if (!items) return;
-
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.indexOf('image') !== -1) {
         const file = items[i].getAsFile();
         if (file) {
-          // Check size (5MB limit)
-          if (file.size > 5 * 1024 * 1024) {
-            alert('Image is too large. Max size is 5MB.');
-            return;
-          }
-
+          if (file.size > 5 * 1024 * 1024) { alert('Image is too large. Max size is 5MB.'); return; }
           const reader = new FileReader();
-          reader.onload = (e: any) => {
-            const base64Image = e.target.result;
-            this.signalrService.sendChatMessage(base64Image);
-          };
+          reader.onload = (e: any) => this.signalrService.sendChatMessage(e.target.result);
           reader.readAsDataURL(file);
         }
       }
     }
   }
 
-  isImage(message: string): boolean {
-    return message.startsWith('data:image/');
-  }
-
-  openLightbox(image: string) {
-    this.lightboxImage.set(image);
-  }
-
-  closeLightbox() {
-    this.lightboxImage.set(null);
-  }
+  isImage(message: string): boolean { return message.startsWith('data:image/'); }
+  openLightbox(image: string)       { this.lightboxImage.set(image); }
+  closeLightbox()                   { this.lightboxImage.set(null); }
 
   @HostListener('window:keydown.escape')
-  onEsc() {
-    this.closeLightbox();
-  }
+  onEsc() { this.closeLightbox(); }
 
   private scrollToBottom(): void {
-    if (this.scrollContainer) {
-      try {
-        this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
-      } catch (err) {}
-    }
+    try { this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight; }
+    catch (err) {}
   }
 }

@@ -3,8 +3,10 @@
 /* You can add global styles to this file, and also import other style files */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
+/* ── Global fixed tokens (shared across ALL themes) ── */
 :root {
-  --primary-50: #f0f9ff;
+  /* Palette */
+  --primary-50:  #f0f9ff;
   --primary-100: #e0f2fe;
   --primary-200: #bae6fd;
   --primary-300: #7dd3fc;
@@ -15,7 +17,7 @@
   --primary-800: #075985;
   --primary-900: #0c4a6e;
 
-  --secondary-50: #f8fafc;
+  --secondary-50:  #f8fafc;
   --secondary-100: #f1f5f9;
   --secondary-200: #e2e8f0;
   --secondary-300: #cbd5e1;
@@ -26,7 +28,7 @@
   --secondary-800: #1e293b;
   --secondary-900: #0f172a;
 
-  --gray-50: #f9fafb;
+  --gray-50:  #f9fafb;
   --gray-100: #f3f4f6;
   --gray-200: #e5e7eb;
   --gray-300: #d1d5db;
@@ -37,23 +39,144 @@
   --gray-800: #1f2937;
   --gray-900: #111827;
 
+  /* Status — never theme-dependent */
   --success-500: #10b981;
-  --error-500: #ef4444;
+  --error-500:   #ef4444;
 
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Typography & shape */
+  --font-family:   'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --border-radius: 0.75rem;
+
+  /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
+/* ────────────────────────────────────────────────────
+   Semantic theme tokens
+   ──────────────────────────────────────────────────── */
+
+/* 1. Purple (default) — soft lavender light */
+:root, [data-theme="purple"] {
+  --bg-base:        #faf5ff;
+  --bg-surface:     #ffffff;
+  --bg-muted:       #f3e8ff;
+  --text-primary:   #3b0764;
+  --text-secondary: #7c3aed;
+  --text-muted:     #a78bfa;
+  --border:         #e9d5ff;
+  --accent:         #7c3aed;
+  --accent-hover:   #6d28d9;
+  --accent-subtle:  #f3e8ff;
+}
+
+/* 2. Dark Purple — deep space violet */
+[data-theme="dark-purple"] {
+  --bg-base:        #0f0a1e;
+  --bg-surface:     #1a1033;
+  --bg-muted:       #2d1f4e;
+  --text-primary:   #f5f3ff;
+  --text-secondary: #c4b5fd;
+  --text-muted:     #7c3aed;
+  --border:         #2d1f4e;
+  --accent:         #a78bfa;
+  --accent-hover:   #c4b5fd;
+  --accent-subtle:  #2d1f4e;
+}
+
+/* 3. Ocean — crisp teal & cyan light */
+[data-theme="ocean"] {
+  --bg-base:        #f0fdfa;
+  --bg-surface:     #ffffff;
+  --bg-muted:       #ccfbf1;
+  --text-primary:   #134e4a;
+  --text-secondary: #0d9488;
+  --text-muted:     #5eead4;
+  --border:         #99f6e4;
+  --accent:         #0d9488;
+  --accent-hover:   #0f766e;
+  --accent-subtle:  #ccfbf1;
+}
+
+/* 4. Midnight Ocean — deep navy with teal glow */
+[data-theme="dark-ocean"] {
+  --bg-base:        #020c14;
+  --bg-surface:     #071a2b;
+  --bg-muted:       #0d2d45;
+  --text-primary:   #e0f2fe;
+  --text-secondary: #38bdf8;
+  --text-muted:     #0ea5e9;
+  --border:         #0d2d45;
+  --accent:         #06b6d4;
+  --accent-hover:   #22d3ee;
+  --accent-subtle:  #0d2d45;
+}
+
+/* 5. Rose — warm blush pink light */
+[data-theme="rose"] {
+  --bg-base:        #fff1f2;
+  --bg-surface:     #ffffff;
+  --bg-muted:       #ffe4e6;
+  --text-primary:   #4c0519;
+  --text-secondary: #e11d48;
+  --text-muted:     #fb7185;
+  --border:         #fecdd3;
+  --accent:         #e11d48;
+  --accent-hover:   #be123c;
+  --accent-subtle:  #ffe4e6;
+}
+
+/* 6. Noir — dark charcoal with rose accent */
+[data-theme="noir"] {
+  --bg-base:        #0d0d0d;
+  --bg-surface:     #1a1a1a;
+  --bg-muted:       #262626;
+  --text-primary:   #fafafa;
+  --text-secondary: #a3a3a3;
+  --text-muted:     #525252;
+  --border:         #2e2e2e;
+  --accent:         #f43f5e;
+  --accent-hover:   #fb7185;
+  --accent-subtle:  #2a1520;
+}
+
+/* 7. Amber — warm golden sand light */
+[data-theme="amber"] {
+  --bg-base:        #fffbeb;
+  --bg-surface:     #ffffff;
+  --bg-muted:       #fef3c7;
+  --text-primary:   #451a03;
+  --text-secondary: #d97706;
+  --text-muted:     #fbbf24;
+  --border:         #fde68a;
+  --accent:         #d97706;
+  --accent-hover:   #b45309;
+  --accent-subtle:  #fef3c7;
+}
+
+/* 8. Obsidian — dark slate with amber glow */
+[data-theme="obsidian"] {
+  --bg-base:        #0a0a0f;
+  --bg-surface:     #13131a;
+  --bg-muted:       #1e1e2a;
+  --text-primary:   #f8f8f2;
+  --text-secondary: #a89984;
+  --text-muted:     #665c54;
+  --border:         #282828;
+  --accent:         #ffb347;
+  --accent-hover:   #ffd27f;
+  --accent-subtle:  #2a2010;
+}
+
+/* ── Apply semantic tokens to body ── */
 body {
   font-family: var(--font-family);
-  background-color: var(--gray-50);
-  color: var(--gray-800);
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 *, *::before, *::after {
   box-sizing: border-box;
 }
-

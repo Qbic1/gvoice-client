@@ -10,246 +10,651 @@ import { AdminService } from '../../core/services/admin.service';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   template: `
-    <div class="lobby-container">
-      <header class="lobby-header">
-        <h1>VoiceRoom Lobby</h1>
-        <div class="admin-actions">
-          <button *ngIf="!adminService.isAdmin()" (click)="openAdminLogin()" class="secondary-btn">Admin Login</button>
-          <button *ngIf="adminService.isAdmin()" (click)="showCreateRoom.set(true)" class="primary-btn">Create Room</button>
-          <button *ngIf="adminService.isAdmin()" (click)="adminService.logout()" class="text-btn">Logout</button>
-        </div>
-      </header>
+    <div class="lobby-page">
 
-      <section class="room-list">
-        <h2>Active Rooms</h2>
-        <div *ngIf="rooms().length === 0" class="empty-state">
-          No active rooms. {{ adminService.isAdmin() ? 'Create one to get started!' : 'Wait for an admin to create a room.' }}
-        </div>
-        <div class="grid">
-          <div *ngFor="let room of rooms()" class="room-card" [routerLink]="['/room', room.id]">
-            <div class="room-info">
-              <h3>{{ room.name }}</h3>
-              <p>{{ room.participantCount }} / 10 participants</p>
+      <div class="bg-orb bg-orb-1"></div>
+      <div class="bg-orb bg-orb-2"></div>
+
+      <div class="lobby-container">
+
+        <!-- Header -->
+        <header class="lobby-header">
+          <div class="brand">
+            <span class="brand-logo">V</span>
+            <div class="brand-text">
+              <span class="brand-name">VoiceRoom</span>
+              <span class="brand-tag">Lobby</span>
             </div>
-            <div class="join-arrow">→</div>
           </div>
-        </div>
-      </section>
+
+          <div class="header-right">
+            <div class="rooms-badge" *ngIf="rooms().length > 0">
+              <span class="rooms-dot"></span>
+              <span class="rooms-count">{{ rooms().length }}</span>
+              <span class="rooms-label"> rooms active</span>
+            </div>
+            <button *ngIf="!adminService.isAdmin()" (click)="openAdminLogin()" class="secondary-btn">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <span class="btn-label">Admin</span>
+            </button>
+            <button *ngIf="adminService.isAdmin()" (click)="showCreateRoom.set(true)" class="primary-btn">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              <span class="btn-label">Create Room</span>
+            </button>
+            <button *ngIf="adminService.isAdmin()" (click)="adminService.logout()" class="text-btn">Logout</button>
+          </div>
+        </header>
+
+        <!-- Room list -->
+        <section class="room-section">
+          <div class="section-header">
+            <h2>Active Rooms</h2>
+            <span class="section-hint" *ngIf="rooms().length > 0">Tap to join</span>
+          </div>
+
+          <div *ngIf="rooms().length === 0" class="empty-state">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <p class="empty-title">No active rooms</p>
+            <p class="empty-sub">
+              {{ adminService.isAdmin() ? 'Create the first room to get started.' : 'Check back soon or ask an admin to create a room.' }}
+            </p>
+            <button *ngIf="adminService.isAdmin()" (click)="showCreateRoom.set(true)" class="primary-btn empty-cta">
+              Create First Room
+            </button>
+          </div>
+
+          <div class="grid" *ngIf="rooms().length > 0">
+            <div *ngFor="let room of rooms()" class="room-card" [routerLink]="['/room', room.id]">
+              <div class="room-avatar" [style.background]="getRoomColor(room.name)">
+                {{ room.name.charAt(0).toUpperCase() }}
+              </div>
+              <div class="room-info">
+                <h3>{{ room.name }}</h3>
+                <div class="room-meta">
+                  <div class="capacity-bar">
+                    <div
+                      class="capacity-fill"
+                      [style.width.%]="(room.participantCount / 10) * 100"
+                      [class.capacity-full]="room.participantCount >= 10"
+                    ></div>
+                  </div>
+                  <span class="capacity-text" [class.capacity-full-text]="room.participantCount >= 10">
+                    {{ room.participantCount }}/10
+                  </span>
+                </div>
+              </div>
+              <div class="join-btn" [class.full]="room.participantCount >= 10">
+                <span *ngIf="room.participantCount < 10">Join</span>
+                <span *ngIf="room.participantCount >= 10">Full</span>
+                <svg *ngIf="room.participantCount < 10" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                  <polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
 
       <!-- Admin Login Modal -->
-      <div *ngIf="showAdminLogin()" class="modal-overlay">
-        <div class="modal">
-          <h3>Admin Authentication</h3>
-          <div *ngIf="errorMessage()" class="error-text mb-4">{{ errorMessage() }}</div>
-          <input type="password" [(ngModel)]="adminPasswordInput" placeholder="Enter Global Admin Password" (keyup.enter)="loginAdmin()" />
+      <div *ngIf="showAdminLogin()" class="modal-overlay" (click)="closeModals()">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <div class="modal-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h3>Admin Login</h3>
+          <p class="modal-sub">Enter your admin password to manage rooms.</p>
+          <div *ngIf="errorMessage()" class="error-banner">{{ errorMessage() }}</div>
+          <div class="input-group">
+            <label>Password</label>
+            <input type="password" [(ngModel)]="adminPasswordInput" placeholder="Enter admin password" (keyup.enter)="loginAdmin()" autofocus />
+          </div>
           <div class="modal-actions">
-            <button (click)="closeModals()">Cancel</button>
-            <button (click)="loginAdmin()" class="primary-btn">Verify</button>
+            <button class="ghost-btn" (click)="closeModals()">Cancel</button>
+            <button class="primary-btn" (click)="loginAdmin()">Verify</button>
           </div>
         </div>
       </div>
 
       <!-- Create Room Modal -->
-      <div *ngIf="showCreateRoom()" class="modal-overlay">
-        <div class="modal">
-          <h3>Create New Room</h3>
-          <div *ngIf="errorMessage()" class="error-text mb-4">{{ errorMessage() }}</div>
-          <input type="text" [(ngModel)]="newRoomName" placeholder="Room Name (e.g. Daily Sync)" />
-          <input type="password" [(ngModel)]="newRoomPassword" placeholder="Room Password (required to join)" />
+      <div *ngIf="showCreateRoom()" class="modal-overlay" (click)="closeModals()">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <div class="modal-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+            </svg>
+          </div>
+          <h3>Create Room</h3>
+          <p class="modal-sub">Set up a new voice room for your team.</p>
+          <div *ngIf="errorMessage()" class="error-banner">{{ errorMessage() }}</div>
+          <div class="input-group">
+            <label>Room Name</label>
+            <input type="text" [(ngModel)]="newRoomName" placeholder="e.g. Daily Sync" />
+          </div>
+          <div class="input-group">
+            <label>Password</label>
+            <input type="password" [(ngModel)]="newRoomPassword" placeholder="Required to join" />
+          </div>
           <div class="modal-actions">
-            <button (click)="closeModals()">Cancel</button>
-            <button (click)="createRoom()" class="primary-btn" [disabled]="!newRoomName || !newRoomPassword">Create</button>
+            <button class="ghost-btn" (click)="closeModals()">Cancel</button>
+            <button class="primary-btn" (click)="createRoom()" [disabled]="!newRoomName.trim() || !newRoomPassword.trim()">
+              Create Room
+            </button>
           </div>
         </div>
       </div>
+
     </div>
   `,
   styles: [`
-    .mb-4 { margin-bottom: 1rem; }
-    .error-text { color: var(--error-500); font-size: 0.875rem; font-weight: 600; }
-    .lobby-container { 
-      max-width: 900px; 
-      margin: 4rem auto; 
-      padding: 0 2rem; 
-      font-family: var(--font-family); 
+    .lobby-page {
+      min-height: 100dvh;
+      background: var(--bg-base);
+      position: relative;
+      overflow: hidden;
     }
-    .lobby-header { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      margin-bottom: 3rem; 
-      padding-bottom: 1.5rem;
-      border-bottom: 1px solid var(--gray-200);
+    .bg-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
     }
-    .lobby-header h1 { 
-      font-size: 2.25rem; 
-      font-weight: 800; 
-      letter-spacing: -0.05em; 
-      color: var(--gray-900);
+    .bg-orb-1 {
+      width: 500px; height: 500px;
+      background: var(--accent);
+      top: -200px; right: -100px;
+      opacity: 0.1;
     }
-    .admin-actions { 
-      display: flex; 
-      gap: 1rem; 
-      align-items: center; 
+    .bg-orb-2 {
+      width: 400px; height: 400px;
+      background: var(--accent-hover);
+      bottom: -150px; left: -100px;
+      opacity: 0.07;
     }
-    
-    .room-list h2 { 
-      margin-bottom: 1.5rem; 
-      font-size: 1rem; 
-      color: var(--gray-500); 
-      text-transform: uppercase; 
-      letter-spacing: 0.05em; 
+
+    .lobby-container {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 1rem 4rem;
+    }
+    @media (min-width: 600px) {
+      .lobby-container { padding: 0 2rem 4rem; }
+    }
+
+    /* ── Header ── */
+    .lobby-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.125rem 0 1.25rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+      gap: 0.5rem;
+    }
+    @media (min-width: 600px) {
+      .lobby-header { padding: 1.5rem 0 2rem; margin-bottom: 2rem; }
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-shrink: 0;
+      min-width: 0;
+    }
+    .brand-logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9375rem;
+      flex-shrink: 0;
+      box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 35%, transparent);
+    }
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
+      min-width: 0;
+    }
+    .brand-name {
+      font-size: 0.9375rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.03em;
+      white-space: nowrap;
+    }
+    .brand-tag {
+      font-size: 0.6rem;
       font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
-    .grid { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-      gap: 1.5rem; 
+    @media (min-width: 600px) {
+      .brand-logo { width: 38px; height: 38px; font-size: 1rem; }
+      .brand-name  { font-size: 1.0625rem; }
+      .brand-tag   { font-size: 0.65rem; }
     }
-    
-    .room-card { 
-      background: #fff; 
-      border: 1px solid var(--gray-200); 
-      padding: 1.5rem; 
-      border-radius: var(--border-radius); 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      cursor: pointer; 
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    /* Rooms badge */
+    .rooms-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--success-500);
+      background: color-mix(in srgb, var(--success-500) 12%, var(--bg-surface));
+      border: 1px solid color-mix(in srgb, var(--success-500) 25%, transparent);
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      white-space: nowrap;
+    }
+    .rooms-dot {
+      width: 5px; height: 5px; min-width: 5px;
+      border-radius: 50%;
+      background: var(--success-500);
+      display: block;
+      animation: blink 2s infinite;
+    }
+    @media (max-width: 360px) {
+      .rooms-label { display: none; }
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ── Buttons ── */
+    .primary-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.5rem 0.875rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8125rem;
+      white-space: nowrap;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);
+    }
+    .primary-btn:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+    .primary-btn:disabled {
+      background: var(--bg-muted);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+    .secondary-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.875rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8125rem;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .secondary-btn:hover {
+      border-color: var(--accent);
+      background: var(--accent-subtle);
+      color: var(--accent);
+    }
+    /* Icon-only on very small screens */
+    @media (max-width: 380px) {
+      .btn-label { display: none; }
+      .primary-btn, .secondary-btn { padding: 0.5rem 0.625rem; }
+    }
+    .ghost-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+    .ghost-btn:hover { background: var(--bg-muted); color: var(--text-primary); }
+    .text-btn {
+      background: none;
+      border: none;
+      color: var(--error-500);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8125rem;
+      padding: 0.5rem 0.375rem;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+    }
+    .text-btn:hover { opacity: 0.7; }
+
+    /* ── Section header ── */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.875rem;
+    }
+    .section-header h2 {
+      margin: 0;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .section-hint { font-size: 0.7rem; color: var(--text-muted); }
+
+    /* ── Grid: single column on mobile, auto-grid on wider ── */
+    .grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
+    }
+    @media (min-width: 580px) {
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1rem;
+      }
+    }
+
+    /* ── Room card ── */
+    .room-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.875rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
       transition: all 0.2s ease;
       box-shadow: var(--shadow-sm);
+      text-decoration: none;
+      -webkit-tap-highlight-color: transparent;
     }
-    .room-card:hover { 
-      border-color: var(--primary-400); 
-      transform: translateY(-3px); 
-      box-shadow: var(--shadow-lg); 
+    .room-card:hover, .room-card:active {
+      border-color: var(--accent);
+      box-shadow: var(--shadow-md);
     }
-    .room-card h3 { 
-      margin: 0 0 0.25rem 0; 
-      font-size: 1.125rem; 
-      font-weight: 600;
-      color: var(--gray-800);
+    .room-card:hover .join-btn, .room-card:active .join-btn {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
     }
-    .room-card p { 
-      margin: 0; 
-      color: var(--gray-500); 
-      font-size: 0.875rem; 
+    @media (min-width: 600px) {
+      .room-card { border-radius: 14px; padding: 1.125rem 1.25rem; gap: 1rem; }
+      .room-card:hover { transform: translateY(-2px); }
     }
-    .join-arrow { 
-      font-size: 1.5rem; 
-      color: var(--gray-300); 
-      transition: all 0.2s ease;
+    .room-avatar {
+      width: 38px; height: 38px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9375rem;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
     }
-    .room-card:hover .join-arrow { 
-      color: var(--primary-500); 
-      transform: translateX(4px);
+    @media (min-width: 600px) {
+      .room-avatar { width: 42px; height: 42px; font-size: 1rem; border-radius: 10px; }
+    }
+    .room-info { flex: 1; min-width: 0; }
+    .room-info h3 {
+      margin: 0 0 0.375rem;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    @media (min-width: 600px) {
+      .room-info h3 { font-size: 0.9375rem; margin-bottom: 0.425rem; }
+    }
+    .room-meta { display: flex; align-items: center; gap: 0.5rem; }
+    .capacity-bar {
+      flex: 1;
+      height: 3px;
+      background: var(--bg-muted);
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+    .capacity-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 9999px;
+      transition: width 0.3s ease;
+    }
+    .capacity-fill.capacity-full { background: var(--error-500); }
+    .capacity-text {
+      font-size: 0.63rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .capacity-full-text { color: var(--error-500); }
+    .join-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      border: 1.5px solid var(--border);
+      color: var(--text-secondary);
+      background: var(--bg-base);
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .join-btn.full {
+      border-color: color-mix(in srgb, var(--error-500) 30%, transparent);
+      color: var(--error-500);
+      background: color-mix(in srgb, var(--error-500) 8%, var(--bg-surface));
     }
 
-    .primary-btn { 
-      background: var(--primary-600); 
-      color: #fff; border: none; 
-      padding: 0.75rem 1.5rem; 
-      border-radius: 0.5rem; 
-      cursor: pointer; 
-      font-weight: 600;
-      transition: all 0.2s ease;
-      box-shadow: var(--shadow-sm);
+    /* ── Empty state ── */
+    .empty-state {
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      background: var(--bg-surface);
+      border: 1.5px dashed var(--border);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
     }
-    .primary-btn:hover { background: var(--primary-700); box-shadow: var(--shadow-md); transform: translateY(-1px); }
-    .primary-btn:disabled { background: var(--gray-300); cursor: not-allowed; }
+    .empty-icon {
+      width: 52px; height: 52px;
+      border-radius: 13px;
+      background: var(--bg-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+    .empty-title { margin: 0; font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); }
+    .empty-sub {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      max-width: 280px;
+      line-height: 1.5;
+    }
+    .empty-cta { margin-top: 1rem; }
 
-    .secondary-btn { 
-      background: #fff; 
-      color: var(--gray-800);
-      border: 1px solid var(--gray-300); 
-      padding: 0.75rem 1.5rem; 
-      border-radius: 0.5rem; 
-      cursor: pointer; 
-      font-weight: 600;
-      transition: all 0.2s ease;
-    }
-    .secondary-btn:hover { border-color: var(--gray-400); background: var(--gray-50); }
-
-    .text-btn { 
-      background: none; 
-      border: none; 
-      color: var(--error-500); 
-      cursor: pointer; 
-      font-weight: 600; 
-    }
-    
-    .empty-state { 
-      padding: 4rem; 
-      text-align: center; 
-      background: var(--gray-100); 
-      border: 2px dashed var(--gray-300); 
-      border-radius: var(--border-radius); 
-      color: var(--gray-500); 
-    }
-
-    .modal-overlay { 
-      position: fixed; 
-      top:0; left:0; right:0; bottom:0; 
-      background: rgba(0,0,0,0.6); 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
+    /* ── Modal — bottom sheet on mobile, centered on desktop ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
       z-index: 100;
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(6px);
+      animation: fadeIn 0.15s ease-out;
     }
-    .modal { 
-      background: #fff; 
-      padding: 2.5rem; 
-      border-radius: var(--border-radius); 
-      width: 100%; 
-      max-width: 400px; 
+    @media (min-width: 600px) {
+      .modal-overlay { align-items: center; }
+    }
+    .modal {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      padding: 1.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+      border-radius: 20px 20px 0 0;
+      width: 100%;
       box-shadow: var(--shadow-lg);
+      animation: slideUp 0.22s ease-out;
     }
-    .modal h3 { 
-      margin-top: 0; 
-      margin-bottom: 1.5rem; 
-      color: var(--gray-900);
-      font-size: 1.25rem;
+    /* Drag handle */
+    .modal::before {
+      content: '';
+      display: block;
+      width: 32px;
+      height: 3px;
+      background: var(--border);
+      border-radius: 9999px;
+      margin: 0 auto 1.125rem;
     }
-    .modal input { 
-      width: 100%; 
-      padding: 0.75rem 1rem; 
-      border: 1px solid var(--gray-300); 
-      border-radius: 0.5rem; 
-      margin-bottom: 1rem; 
-      box-sizing: border-box; 
-      font-size: 1rem;
+    @media (min-width: 600px) {
+      .modal {
+        border-radius: 18px;
+        padding: 2rem;
+        max-width: 400px;
+      }
+      .modal::before { display: none; }
     }
-    .modal input:focus {
-      outline: 2px solid var(--primary-400);
+    .modal-icon {
+      width: 42px; height: 42px;
+      border-radius: 11px;
+      background: var(--accent-subtle);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.875rem;
+    }
+    .modal h3 {
+      margin: 0 0 0.25rem;
+      font-size: 1.125rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--text-primary);
+    }
+    .modal-sub {
+      margin: 0 0 1.25rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .error-banner {
+      background: color-mix(in srgb, var(--error-500) 10%, var(--bg-surface));
+      border: 1px solid color-mix(in srgb, var(--error-500) 30%, transparent);
+      color: var(--error-500);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 0.625rem 0.875rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+      margin-bottom: 0.875rem;
+    }
+    .input-group label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+    .input-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem; /* 16px — prevents iOS auto-zoom */
+      background: var(--bg-base);
+      color: var(--text-primary);
+      transition: all 0.2s;
+      box-sizing: border-box;
+      font-family: var(--font-family);
+    }
+    .input-group input::placeholder { color: var(--text-muted); }
+    .input-group input:focus {
+      outline: 2px solid var(--accent);
       border-color: transparent;
     }
-    .modal-actions { 
-      display: flex; 
-      justify-content: flex-end; 
-      gap: 1rem; 
-      margin-top: 1.5rem; 
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
     }
-    .modal-actions button { 
-      background: none; 
-      border: none; 
-      cursor: pointer; 
-      font-weight: 600;
-      padding: 0.6rem 1.2rem;
-      border-radius: 0.5rem;
-      transition: all 0.2s ease;
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
-    .modal-actions button:first-child {
-      color: var(--gray-700);
-    }
-    .modal-actions button:first-child:hover {
-      background: var(--gray-100);
-    }
-    .modal-actions .primary-btn { 
-      background: var(--primary-600); 
-      color: #fff; 
-    }
-    .modal-actions .primary-btn:hover { background: var(--primary-700); }
   `]
 })
 export class LobbyComponent implements OnInit {
@@ -268,13 +673,19 @@ export class LobbyComponent implements OnInit {
 
   async ngOnInit() {
     this.rooms.set(await this.signalrService.fetchRooms());
-    
-    // Connect to SignalR to receive real-time room updates.
-    // The connection here is for general lobby events, not a specific room.
     await this.signalrService.startConnection('lobby');
     this.signalrService.roomCreated$.subscribe(async () => {
       this.rooms.set(await this.signalrService.fetchRooms());
     });
+  }
+
+  getRoomColor(name: string): string {
+    const colors = ['#6366f1', '#ec4899', '#8b5cf6', '#0d9488', '#f59e0b', '#3b82f6', '#e11d48', '#10b981'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
   }
 
   openAdminLogin() {
@@ -295,7 +706,7 @@ export class LobbyComponent implements OnInit {
       this.showAdminLogin.set(false);
       this.adminPasswordInput = '';
     } else {
-      this.errorMessage.set('Invalid Admin Password');
+      this.errorMessage.set('Incorrect password. Please try again.');
     }
   }
 
@@ -308,7 +719,6 @@ export class LobbyComponent implements OnInit {
       this.showAdminLogin.set(true);
       return;
     }
-
     try {
       await this.signalrService.createRoom(adminPassword, this.newRoomName, this.newRoomPassword);
       this.showCreateRoom.set(false);
