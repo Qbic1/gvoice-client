@@ -291,19 +291,21 @@ export class WebRtcService {
     analyser.fftSize = 512;
     analyser.smoothingTimeConstant = 0.3;
 
-    // Tap off the source node (already created) into the analyser
     const source = this.participantSourceNodes.get(connectionId);
     if (!source) return;
     source.connect(analyser);
 
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
-    const SPEAKING_THRESHOLD = 20; // tweak if too sensitive
+    const SPEAKING_THRESHOLD = 20; 
     const SILENCE_DEBOUNCE_MS = 800;
     let silenceTimer: ReturnType<typeof setTimeout> | null = null;
     let isSpeaking = false;
 
-    const check = () => {
-      if (!this.participantSourceNodes.has(connectionId)) return; // peer left
+    const interval = setInterval(() => {
+      if (!this.participantSourceNodes.has(connectionId)) {
+        clearInterval(interval);
+        return;
+      }
       analyser.getByteFrequencyData(dataArray);
       const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
 
@@ -322,9 +324,7 @@ export class WebRtcService {
           }, SILENCE_DEBOUNCE_MS);
         }
       }
-      requestAnimationFrame(check);
-    };
-    requestAnimationFrame(check);
+    }, 100);
   }
 
   private playRemoteStream(connectionId: string, stream: MediaStream) {
