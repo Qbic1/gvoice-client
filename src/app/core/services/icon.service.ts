@@ -30,4 +30,5 @@ export class IconService {
   get ROOM(): SafeHtml { return this.sanitizedIcons['ROOM']; }
   get SETTINGS(): SafeHtml { return this.sanitizedIcons['SETTINGS']; }
   get HOME(): SafeHtml { return this.sanitizedIcons['HOME']; }
+  get SCREEN_SHARE(): SafeHtml { return this.sanitizedIcons['SCREEN_SHARE']; }
 }

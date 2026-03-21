@@ -140,7 +140,7 @@ export class SignalRService {
     }
   }
 
-  async updateState(stateType: 'muted' | 'deafened', value: boolean) {
+  async updateState(stateType: 'muted' | 'deafened' | 'sharingScreen', value: boolean) {
     if (this.hubConnection?.state === signalR.HubConnectionState.Connected) {
       await this.hubConnection.invoke('UpdateState', stateType, value);
     }

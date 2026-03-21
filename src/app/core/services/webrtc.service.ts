@@ -30,13 +30,18 @@ export class WebRtcService {
   private audioElements = new Map<string, HTMLAudioElement>();
 
   public localStream$ = new ReplaySubject<MediaStream>(1);
+  public screenStream$ = new ReplaySubject<MediaStream | null>(1);
   public peerStreamAdded$ = new Subject<{ connectionId: string, stream: MediaStream }>();
 
   isMuted = signal(false);
   isPttMode = signal(false);
   isPttActive = signal(false);
   isDeafened = signal(false);
+  isSharingScreen = signal(false);
   private lastMuteStateBeforePtt = false;
+
+  private screenStream: MediaStream | null = null;
+  private screenSenders = new Map<string, RTCRtpSender[]>();
 
   private iceServers: RTCConfiguration = {
     iceServers: environment.iceServers,
@@ -224,6 +229,16 @@ export class WebRtcService {
       }
     };
 
+    pc.onnegotiationneeded = async () => {
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        this.signalrService.sendSignal(connectionId, JSON.stringify({ sdp: offer }));
+      } catch (err) {
+        console.error('Renegotiation failed:', err);
+      }
+    };
+
     pc.ontrack = (event) => {
       const stream = event.streams[0];
       this.remoteStreams.set(connectionId, stream);
@@ -236,6 +251,11 @@ export class WebRtcService {
       tracksStream.getTracks().forEach(track => pc.addTrack(track, tracksStream));
     }
 
+    // Add screen tracks if sharing
+    if (this.isSharingScreen() && this.screenStream) {
+      this.addScreenTracksToPeer(connectionId, pc);
+    }
+
     if (isOfferor) {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -243,6 +263,80 @@ export class WebRtcService {
     }
 
     return pc;
+  }
+
+  async startScreenShare() {
+    if (!this.isBrowser || this.isSharingScreen()) return;
+
+    try {
+      this.screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          frameRate: 30,
+          height: 720
+        },
+        audio: true
+      });
+
+      this.isSharingScreen.set(true);
+      this.screenStream$.next(this.screenStream);
+      this.signalrService.updateState('sharingScreen', true);
+
+      // Add tracks to all existing peer connections
+      this.peerConnections.forEach((pc, connectionId) => {
+        this.addScreenTracksToPeer(connectionId, pc);
+      });
+
+      // Handle "Stop Sharing" from browser UI
+      this.screenStream.getVideoTracks()[0].onended = () => {
+        this.stopScreenShare();
+      };
+
+    } catch (err) {
+      console.error('Error starting screen share:', err);
+      this.isSharingScreen.set(false);
+      this.screenStream$.next(null);
+    }
+  }
+
+  stopScreenShare() {
+    if (!this.screenStream) return;
+
+    this.screenStream.getTracks().forEach(track => track.stop());
+    
+    // Remove tracks from all peer connections
+    this.peerConnections.forEach((pc, connectionId) => {
+      this.removeScreenTracksFromPeer(connectionId, pc);
+    });
+
+    this.screenStream = null;
+    this.isSharingScreen.set(false);
+    this.screenStream$.next(null);
+    this.signalrService.updateState('sharingScreen', false);
+  }
+
+  private addScreenTracksToPeer(connectionId: string, pc: RTCPeerConnection) {
+    if (!this.screenStream) return;
+
+    const senders: RTCRtpSender[] = [];
+    this.screenStream.getTracks().forEach(track => {
+      const sender = pc.addTrack(track, this.screenStream!);
+      senders.push(sender);
+    });
+    this.screenSenders.set(connectionId, senders);
+  }
+
+  private removeScreenTracksFromPeer(connectionId: string, pc: RTCPeerConnection) {
+    const senders = this.screenSenders.get(connectionId);
+    if (senders) {
+      senders.forEach(sender => {
+        try {
+          pc.removeTrack(sender);
+        } catch (err) {
+          console.warn('Error removing track from peer:', connectionId, err);
+        }
+      });
+      this.screenSenders.delete(connectionId);
+    }
   }
 
   private getOrCreatePeerConnection(connectionId: string, isOfferor: boolean): Promise<RTCPeerConnection> {
