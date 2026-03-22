@@ -56,7 +56,8 @@ export class AudioProcessorService {
     }
 
     try {
-      await ctx.audioWorklet.addModule('assets/audio-worklet.js');
+      // FIX: audio-worklet.js moved to public/ for proper serving.
+      await ctx.audioWorklet.addModule('audio-worklet.js');
       this.workletReady.set(true);
       console.log('AudioWorklets loaded successfully');
       return true;
@@ -76,16 +77,23 @@ export class AudioProcessorService {
 
     // HPF and compressor are controlled by the Audio Enhancements toggle
     if (this.localHpFilter) {
+      // High-pass: cut rumble when enabled, pass everything when disabled
       this.localHpFilter.frequency.setTargetAtTime(enabled ? 80 : 10, ctx.currentTime, 0.1);
     }
 
     if (this.localCompressor) {
       if (enabled) {
+        // FIX: Use a gentle output limiter, NOT an expander/noise pump.
+        // threshold: -12dB — only bricks peaks above a comfortable level
+        // ratio: 4:1    — gentle, transparent, won't push up the noise floor
+        // attack: 5ms   — avoids distortion on transients
+        // release: 200ms — natural decay
         this.localCompressor.threshold.setTargetAtTime(-12, ctx.currentTime, 0.1);
         this.localCompressor.ratio.setTargetAtTime(4, ctx.currentTime, 0.1);
         this.localCompressor.attack.setTargetAtTime(0.005, ctx.currentTime, 0.1);
         this.localCompressor.release.setTargetAtTime(0.2, ctx.currentTime, 0.1);
       } else {
+        // Disabled: set to unity (no compression)
         this.localCompressor.threshold.setTargetAtTime(0, ctx.currentTime, 0.1);
         this.localCompressor.ratio.setTargetAtTime(1, ctx.currentTime, 0.1);
         this.localCompressor.attack.setTargetAtTime(0.003, ctx.currentTime, 0.1);
@@ -95,17 +103,13 @@ export class AudioProcessorService {
 
     if (this.localNoiseGate) {
       const thresholdParam = this.localNoiseGate.parameters.get('threshold');
-      const enabledParam   = this.localNoiseGate.parameters.get('enabled');
+      const enabledParam = this.localNoiseGate.parameters.get('enabled');
 
       if (thresholdParam) thresholdParam.setTargetAtTime(threshold, ctx.currentTime, 0.1);
 
       // FIX: Gate enabled/disabled is now controlled ONLY by the threshold value,
       // NOT by the enhancements toggle. Setting threshold to 0 disables the gate
       // (everything passes through). Any value > 0 enables it.
-      //
-      // Previously, the gate was disabled whenever enableAudioEnhancements() was
-      // false — meaning the threshold slider had zero effect when enhancements
-      // were off, which was confusing because the slider is a separate control.
       if (enabledParam) enabledParam.setTargetAtTime(threshold > 0 ? 1 : 0, ctx.currentTime, 0.1);
     }
   }
@@ -123,22 +127,23 @@ export class AudioProcessorService {
     const source      = ctx.createMediaStreamSource(stream);
     const destination = ctx.createMediaStreamDestination();
 
-    // 1. High Pass Filter — removes low-frequency rumble
+    // 1. High Pass Filter — removes low-frequency rumble (mic handling noise, HVAC)
     this.localHpFilter = ctx.createBiquadFilter();
     this.localHpFilter.type = 'highpass';
     const enabled = this.settingsService.enableAudioEnhancements();
     this.localHpFilter.frequency.value = enabled ? 80 : 10;
-    this.localHpFilter.Q.value = 0.7; // Butterworth — flat passband, no resonance
+    this.localHpFilter.Q.value = 0.7; // Butterworth — flat passband, no resonance peak
 
-    // 2. Compressor — gentle peak limiter, does not amplify noise floor
+    // 2. Compressor — gentle peak limiter only, does NOT amplify noise floor.
     this.localCompressor = ctx.createDynamicsCompressor();
-    this.localCompressor.knee.setValueAtTime(6, ctx.currentTime);
+    this.localCompressor.knee.setValueAtTime(6, ctx.currentTime);     // soft knee for transparency
     if (enabled) {
       this.localCompressor.threshold.setValueAtTime(-12, ctx.currentTime);
       this.localCompressor.ratio.setValueAtTime(4, ctx.currentTime);
       this.localCompressor.attack.setValueAtTime(0.005, ctx.currentTime);
       this.localCompressor.release.setValueAtTime(0.2, ctx.currentTime);
     } else {
+      // Unity passthrough when disabled
       this.localCompressor.threshold.setValueAtTime(0, ctx.currentTime);
       this.localCompressor.ratio.setValueAtTime(1, ctx.currentTime);
       this.localCompressor.attack.setValueAtTime(0.003, ctx.currentTime);
@@ -146,8 +151,6 @@ export class AudioProcessorService {
     }
 
     // 3. Analyser — placed AFTER the gate so the settings meter reflects gated output.
-    //    AnalyserNode is a transparent pass-through: it reads the audio without
-    //    modifying it, so it can sit inline in the chain without affecting output.
     this.localAnalyser = ctx.createAnalyser();
     this.localAnalyser.fftSize = 2048;
 
@@ -156,14 +159,13 @@ export class AudioProcessorService {
     this.localHpFilter.connect(this.localCompressor);
 
     if (this.workletReady()) {
-      // 4. Noise Gate (AudioWorklet)
+      // 4. Noise Gate (AudioWorklet) — silences signal below threshold entirely
       this.localNoiseGate = new AudioWorkletNode(ctx, 'noise-gate-processor');
 
       // Immediately flush current slider/toggle values into the new node
       this.updateLocalProcessing(enabled, this.settingsService.noiseGateThreshold());
 
       // Chain: source → HPF → compressor → gate → analyser → destination
-      // The analyser sits after the gate so the meter shows gated output.
       this.localCompressor.connect(this.localNoiseGate);
       this.localNoiseGate.connect(this.localAnalyser);
       this.localAnalyser.connect(destination);

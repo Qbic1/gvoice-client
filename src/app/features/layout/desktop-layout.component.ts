@@ -1,4 +1,4 @@
-import { Component, inject, Output, EventEmitter } from '@angular/core';
+import { Component, inject, Output, EventEmitter, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ParticipantListComponent } from '../room/participant-list.component';
 import { VoiceControlsComponent } from '../controls/voice-controls.component';
@@ -6,11 +6,19 @@ import { ChatComponent } from '../chat/chat.component';
 import { IconService } from '../../core/services/icon.service';
 import { ParticipantService } from '../../core/services/participant.service';
 import { DisplayNameService } from '../../core/services/display-name.service';
+import { WebRtcService } from '../../core/services/webrtc.service';
+import { ScreenShareOverlayComponent } from '../room/screen-share-overlay.component';
 
 @Component({
   selector: 'app-desktop-layout',
   standalone: true,
-  imports: [CommonModule, ParticipantListComponent, VoiceControlsComponent, ChatComponent],
+  imports: [
+    CommonModule, 
+    ParticipantListComponent, 
+    VoiceControlsComponent, 
+    ChatComponent, 
+    ScreenShareOverlayComponent
+  ],
   template: `
     <div class="room-container">
       <header class="room-header">
@@ -22,6 +30,16 @@ import { DisplayNameService } from '../../core/services/display-name.service';
           <div class="user-info">
             Joined as: <strong>{{ displayName() }}</strong>
           </div>
+
+          <button 
+            class="icon-btn" 
+            [class.active]="isLocalSharing()" 
+            [disabled]="isAnyScreenSharing() && !isLocalSharing()"
+            (click)="toggleScreenShare()" 
+            [title]="isLocalSharing() ? 'Stop Sharing' : 'Share Screen'">
+            <span class="icon" [innerHTML]="icons.SCREEN_SHARE"></span>
+          </button>
+
           <button class="icon-btn" (click)="onRejoin.emit()" title="Back to Lobby">
             <span class="icon" [innerHTML]="icons.HOME"></span>
           </button>
@@ -34,7 +52,7 @@ import { DisplayNameService } from '../../core/services/display-name.service';
       <div class="main-layout">
         <aside class="sidebar">
           <div class="sidebar-section">
-            <app-participant-list></app-participant-list>
+            <app-participant-list (onWatchStream)="watchStream($event)"></app-participant-list>
           </div>
           <div class="sidebar-footer">
             <app-voice-controls></app-voice-controls>
@@ -48,6 +66,12 @@ import { DisplayNameService } from '../../core/services/display-name.service';
           <app-chat></app-chat>
         </section>
       </div>
+
+      <app-screen-share-overlay
+        *ngIf="streamToWatch()"
+        [stream]="streamToWatch()!"
+        (closeOverlay)="closeStream()"
+      ></app-screen-share-overlay>
     </div>
   `,
   styles: [`
@@ -124,6 +148,16 @@ import { DisplayNameService } from '../../core/services/display-name.service';
       color: var(--text-primary);
       border-color: var(--accent);
     }
+    .icon-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .icon-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(1);
+    }
     .icon { display: flex; align-items: center; justify-content: center; }
 
     /* ── Layout ── */
@@ -194,10 +228,34 @@ export class DesktopLayoutComponent {
   icons = inject(IconService);
   participantService = inject(ParticipantService);
   displayNameService = inject(DisplayNameService);
+  webrtcService = inject(WebRtcService);
 
   roomName = this.participantService.roomName;
   displayName = this.displayNameService.displayName;
+  isLocalSharing = this.webrtcService.isSharingScreen;
+  isAnyScreenSharing = this.participantService.isAnyScreenSharing;
+
+  streamToWatch = signal<MediaStream | null>(null);
 
   @Output() onRejoin = new EventEmitter<void>();
   @Output() onShowSettings = new EventEmitter<void>();
+
+  toggleScreenShare() {
+    if (this.isLocalSharing()) {
+      this.webrtcService.stopScreenShare();
+    } else {
+      this.webrtcService.startScreenShare();
+    }
+  }
+
+  watchStream(connectionId: string) {
+    const stream = this.webrtcService.getStream(connectionId);
+    if (stream) {
+      this.streamToWatch.set(stream);
+    }
+  }
+
+  closeStream() {
+    this.streamToWatch.set(null);
+  }
 }

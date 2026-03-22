@@ -22,6 +22,9 @@ export class ParticipantService {
     return this.participants().find(p => p.connectionId === id);
   });
 
+  isAnyScreenSharing = computed(() => this.participants().some(p => p.isSharingScreen));
+  isLocalSharing = computed(() => this.localParticipant()?.isSharingScreen ?? false);
+
   constructor() {
     this.signalrService.roomJoined$.subscribe(payload => {
       const participantsWithVolume = payload.participants.map(p => ({
@@ -54,6 +57,8 @@ export class ParticipantService {
               updatedParticipant.isMuted = update.value;
             } else if (update.stateType.toLowerCase() === 'deafened') {
               updatedParticipant.isDeafened = update.value;
+            } else if (update.stateType.toLowerCase() === 'sharingscreen') {
+              updatedParticipant.isSharingScreen = update.value;
             }
             return updatedParticipant;
           }
