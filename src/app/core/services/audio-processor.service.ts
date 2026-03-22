@@ -110,10 +110,6 @@ export class AudioProcessorService {
       // FIX: Gate enabled/disabled is now controlled ONLY by the threshold value,
       // NOT by the enhancements toggle. Setting threshold to 0 disables the gate
       // (everything passes through). Any value > 0 enables it.
-      //
-      // Previously, the gate was disabled whenever enableAudioEnhancements() was
-      // false — meaning the threshold slider had zero effect when enhancements
-      // were off, which was confusing because the slider is a separate control.
       if (enabledParam) enabledParam.setTargetAtTime(threshold > 0 ? 1 : 0, ctx.currentTime, 0.1);
     }
   }
@@ -155,8 +151,6 @@ export class AudioProcessorService {
     }
 
     // 3. Analyser — placed AFTER the gate so the settings meter reflects gated output.
-    //    AnalyserNode is a transparent pass-through: it reads the audio without
-    //    modifying it, so it can sit inline in the chain without affecting output.
     this.localAnalyser = ctx.createAnalyser();
     this.localAnalyser.fftSize = 2048;
 
@@ -172,7 +166,6 @@ export class AudioProcessorService {
       this.updateLocalProcessing(enabled, this.settingsService.noiseGateThreshold());
 
       // Chain: source → HPF → compressor → gate → analyser → destination
-      // The analyser sits after the gate so the meter shows gated output.
       this.localCompressor.connect(this.localNoiseGate);
       this.localNoiseGate.connect(this.localAnalyser);
       this.localAnalyser.connect(destination);
