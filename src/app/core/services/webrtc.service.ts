@@ -3,7 +3,8 @@ import { isPlatformBrowser } from '@angular/common';
 import { SignalRService } from './signalr.service';
 import { ParticipantService } from './participant.service';
 import { AudioProcessorService } from './audio-processor.service';
-import { Subject, ReplaySubject } from 'rxjs';
+import { ChimesService } from './chimes.service';
+import { Subject, ReplaySubject, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment.development';
 
 @Injectable({
@@ -15,6 +16,7 @@ export class WebRtcService {
   private signalrService = inject(SignalRService);
   private participantService = inject(ParticipantService);
   private audioProcessorService = inject(AudioProcessorService);
+  private chimesService = inject(ChimesService);
 
   private peerConnections = new Map<string, RTCPeerConnection>();
   private pendingConnections = new Map<string, Promise<RTCPeerConnection>>();
@@ -42,6 +44,10 @@ export class WebRtcService {
 
   private screenStream: MediaStream | null = null;
   private screenSenders = new Map<string, RTCRtpSender[]>();
+  
+  // Perfect Negotiation state
+  private makingOffer = new Map<string, boolean>();
+  private ignoreOffer = new Map<string, boolean>();
 
   private iceServers: RTCConfiguration = {
     iceServers: environment.iceServers,
@@ -67,6 +73,17 @@ export class WebRtcService {
       this.closePeerConnection(peer.connectionId);
     });
 
+    this.signalrService.peerStateUpdated$.subscribe((data) => {
+      if (data.stateType === 'sharingScreen') {
+        if (data.value) {
+          this.chimesService.playScreenShareStart();
+        } else {
+          this.chimesService.playScreenShareStop();
+        }
+      }
+    });
+
+    // Global interaction listener to resume AudioContext (autoplay policy)
     if (this.isBrowser) {
       const resumeAudio = () => {
         if (this.audioContext && this.audioContext.state === 'suspended') {
@@ -190,6 +207,10 @@ export class WebRtcService {
     this.setMicEnabled(active);
   }
 
+  getStream(connectionId: string): MediaStream | undefined {
+    return this.remoteStreams.get(connectionId);
+  }
+
   setParticipantVolume(connectionId: string, volume: number) {
     this.participantService.updateParticipantVolume(connectionId, volume);
     this.applyParticipantVolume(connectionId);
@@ -231,11 +252,17 @@ export class WebRtcService {
 
     pc.onnegotiationneeded = async () => {
       try {
+        this.makingOffer.set(connectionId, true);
         const offer = await pc.createOffer();
+        // If the signaling state changed while we were creating the offer, abort
+        if (pc.signalingState !== 'stable') return;
+
         await pc.setLocalDescription(offer);
-        this.signalrService.sendSignal(connectionId, JSON.stringify({ sdp: offer }));
+        this.signalrService.sendSignal(connectionId, JSON.stringify({ sdp: pc.localDescription }));
       } catch (err) {
         console.error('Renegotiation failed:', err);
+      } finally {
+        this.makingOffer.set(connectionId, false);
       }
     };
 
@@ -256,11 +283,8 @@ export class WebRtcService {
       this.addScreenTracksToPeer(connectionId, pc);
     }
 
-    if (isOfferor) {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      this.signalrService.sendSignal(connectionId, JSON.stringify({ sdp: offer }));
-    }
+    // REMOVED: isOfferor check here. onnegotiationneeded will handle initial offer.
+    // This avoids double-offering when tracks are added.
 
     return pc;
   }
@@ -280,6 +304,11 @@ export class WebRtcService {
       this.isSharingScreen.set(true);
       this.screenStream$.next(this.screenStream);
       this.signalrService.updateState('sharingScreen', true);
+
+      this.chimesService.playScreenShareStart();
+      if ('vibrate' in navigator) {
+        navigator.vibrate(50);
+      }
 
       // Add tracks to all existing peer connections
       this.peerConnections.forEach((pc, connectionId) => {
@@ -312,6 +341,11 @@ export class WebRtcService {
     this.isSharingScreen.set(false);
     this.screenStream$.next(null);
     this.signalrService.updateState('sharingScreen', false);
+
+    this.chimesService.playScreenShareStop();
+    if ('vibrate' in navigator) {
+      navigator.vibrate([30, 30]);
+    }
   }
 
   private addScreenTracksToPeer(connectionId: string, pc: RTCPeerConnection) {
@@ -357,16 +391,43 @@ export class WebRtcService {
     const data = JSON.parse(signal);
     const pc = await this.getOrCreatePeerConnection(connectionId, false);
 
-    if (data.sdp) {
-      await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-      if (data.sdp.type === 'offer') {
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        this.signalrService.sendSignal(connectionId, JSON.stringify({ sdp: answer }));
+    try {
+      if (data.sdp) {
+        const description = new RTCSessionDescription(data.sdp);
+        const offerCollision = description.type === 'offer' &&
+          (this.makingOffer.get(connectionId) || pc.signalingState !== 'stable');
+
+        this.ignoreOffer.set(connectionId, offerCollision && !this.isPolite(connectionId));
+        if (this.ignoreOffer.get(connectionId)) {
+          console.log(`[WebRTC] Ignoring colliding offer from ${connectionId} (impolite)`);
+          return;
+        }
+
+        await pc.setRemoteDescription(description);
+        if (description.type === 'offer') {
+          await pc.setLocalDescription();
+          this.signalrService.sendSignal(connectionId, JSON.stringify({ sdp: pc.localDescription }));
+        }
+      } else if (data.ice) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(data.ice));
+        } catch (err) {
+          if (!this.ignoreOffer.get(connectionId)) {
+            throw err;
+          }
+        }
       }
-    } else if (data.ice) {
-      await pc.addIceCandidate(new RTCIceCandidate(data.ice));
+    } catch (err) {
+      console.error(`Error handling signal from peer ${connectionId}:`, err);
     }
+  }
+
+  // Polite peer is the one who didn't initiate the connection (the receiver)
+  // In our mesh, we use lexicographical comparison of connection IDs for a stable result.
+  private isPolite(connectionId: string): boolean {
+    const localId = this.signalrService.connectionId();
+    if (!localId) return true;
+    return localId < connectionId;
   }
 
   private closePeerConnection(connectionId: string) {

@@ -23,8 +23,9 @@ import { IconService } from '../../core/services/icon.service';
           <span class="name">{{ participant().displayName }}</span>
           <span *ngIf="participant().isSharingScreen" 
                 class="stream-badge" 
+                title="Watch Stream"
                 (click)="$event.stopPropagation(); onWatchStream.emit()">
-            [STREAM]
+            <span class="icon" [innerHTML]="icons.EYE"></span>
           </span>
         </div>
         <div class="status-indicators">
@@ -113,12 +114,14 @@ import { IconService } from '../../core/services/icon.service';
     }
 
     .stream-badge {
-      font-size: 10px;
-      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       color: var(--accent);
       background: var(--accent-subtle);
-      padding: 2px 6px;
-      border-radius: 4px;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s;
       border: 1px solid transparent;
@@ -126,6 +129,13 @@ import { IconService } from '../../core/services/icon.service';
     .stream-badge:hover {
       background: var(--accent);
       color: #fff;
+    }
+    .stream-badge .icon {
+      display: flex;
+    }
+    ::ng-deep .stream-badge svg {
+      width: 14px;
+      height: 14px;
     }
 
     .status-indicators {

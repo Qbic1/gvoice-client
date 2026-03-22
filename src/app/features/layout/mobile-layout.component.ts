@@ -6,13 +6,22 @@ import { ChatComponent } from '../chat/chat.component';
 import { SettingsComponent } from '../settings/settings.component';
 import { IconService } from '../../core/services/icon.service';
 import { ParticipantService } from '../../core/services/participant.service';
+import { WebRtcService } from '../../core/services/webrtc.service';
+import { ScreenShareOverlayComponent } from '../room/screen-share-overlay.component';
 
 type MobileTab = 'room' | 'chat' | 'settings';
 
 @Component({
   selector: 'app-mobile-layout',
   standalone: true,
-  imports: [CommonModule, ParticipantListComponent, VoiceControlsComponent, ChatComponent, SettingsComponent],
+  imports: [
+    CommonModule, 
+    ParticipantListComponent, 
+    VoiceControlsComponent, 
+    ChatComponent, 
+    SettingsComponent,
+    ScreenShareOverlayComponent
+  ],
   template: `
     <div class="room-container">
 
@@ -35,7 +44,7 @@ type MobileTab = 'room' | 'chat' | 'settings';
         <!-- Room tab: participants + voice controls -->
         <div class="tab-panel" [class.visible]="activeTab() === 'room'">
           <div class="participants-section">
-            <app-participant-list></app-participant-list>
+            <app-participant-list (onWatchStream)="watchStream($event)"></app-participant-list>
           </div>
           <div class="voice-section">
             <app-voice-controls></app-voice-controls>
@@ -56,6 +65,12 @@ type MobileTab = 'room' | 'chat' | 'settings';
         </div>
 
       </main>
+
+      <app-screen-share-overlay
+        *ngIf="streamToWatch()"
+        [stream]="streamToWatch()!"
+        (closeOverlay)="closeStream()"
+      ></app-screen-share-overlay>
 
       <!-- Bottom navigation -->
       <nav class="bottom-nav">
@@ -298,5 +313,19 @@ export class MobileLayoutComponent {
   roomName = this.participantService.roomName;
   activeTab = signal<MobileTab>('room');
 
+  webrtcService = inject(WebRtcService);
+  streamToWatch = signal<MediaStream | null>(null);
+
   @Output() onRejoin = new EventEmitter<void>();
+
+  watchStream(connectionId: string) {
+    const stream = this.webrtcService.getStream(connectionId);
+    if (stream) {
+      this.streamToWatch.set(stream);
+    }
+  }
+
+  closeStream() {
+    this.streamToWatch.set(null);
+  }
 }
