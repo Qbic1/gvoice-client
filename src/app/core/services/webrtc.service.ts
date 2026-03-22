@@ -3,7 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { SignalRService } from './signalr.service';
 import { ParticipantService } from './participant.service';
 import { AudioProcessorService } from './audio-processor.service';
-import { Subject, ReplaySubject, firstValueFrom } from 'rxjs';
+import { Subject, ReplaySubject } from 'rxjs';
 import { environment } from '../../../environments/environment.development';
 
 @Injectable({
@@ -22,7 +22,6 @@ export class WebRtcService {
   private localProcessedStream: MediaStream | null = null;
   private remoteStreams = new Map<string, MediaStream>();
 
-  // Audio Graph Management
   public get audioContext(): AudioContext | null {
     return this.audioProcessorService.audioContext;
   }
@@ -45,6 +44,11 @@ export class WebRtcService {
   };
 
   constructor() {
+    this.audioProcessorService.registerStreamReadyCallback((upgradedStream) => {
+      this.localProcessedStream = upgradedStream;
+      this.replaceTracksInAllPeerConnections(upgradedStream);
+    });
+
     this.signalrService.peerJoined$.subscribe(async (peer) => {
       await this.getLocalStream();
       await this.getOrCreatePeerConnection(peer.connectionId, true);
@@ -58,14 +62,11 @@ export class WebRtcService {
       this.closePeerConnection(peer.connectionId);
     });
 
-    // Global interaction listener to resume AudioContext (autoplay policy)
     if (this.isBrowser) {
       const resumeAudio = () => {
         if (this.audioContext && this.audioContext.state === 'suspended') {
           this.audioContext.resume();
         }
-        // We don't remove it immediately because new nodes might need it later, 
-        // but browser usually only needs one interaction to unlock the context.
       };
       document.addEventListener('click', resumeAudio);
       document.addEventListener('keydown', resumeAudio);
@@ -73,7 +74,6 @@ export class WebRtcService {
   }
 
   private initAudioContext() {
-    // Accessing the getter will initialize the context if needed via AudioProcessorService
     const ctx = this.audioContext;
   }
 
@@ -83,11 +83,31 @@ export class WebRtcService {
 
     this.initAudioContext();
     try {
-      this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      
-      // Process local stream for sending to peers
+      // FIX: Request getUserMedia with explicit noise suppression constraints.
+      //
+      // The browser's built-in noiseSuppression and echoCancellation are applied
+      // at the hardware/driver level and are far more effective than anything we
+      // can do in the Web Audio API. Enabling them here means our Web Audio graph
+      // only needs to handle gating and gentle peak limiting — not heavy lifting.
+      //
+      // We also disable autoGainControl because our compressor handles gain; 
+      // browser AGC and a compressor fighting each other causes pumping artifacts.
+      this.localStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: false, // let our compressor handle this
+          sampleRate: 48000,
+          channelCount: 1,        // mono — halves worklet processing load
+        },
+        video: false
+      });
+
+      // Load worklet AFTER getUserMedia so AudioContext is guaranteed not suspended
+      await this.audioProcessorService.ensureWorkletLoaded();
+
       this.localProcessedStream = this.audioProcessorService.processLocalStream(this.localStream);
-      
+
       this.localStream$.next(this.localStream);
 
       if (this.isPttMode()) {
@@ -99,9 +119,22 @@ export class WebRtcService {
       return this.localStream;
     } catch (err) {
       console.error('Error getting local stream:', err);
-      // Join in listen-only mode
       return null;
     }
+  }
+
+  private replaceTracksInAllPeerConnections(processedStream: MediaStream) {
+    const newTrack = processedStream.getAudioTracks()[0];
+    if (!newTrack) return;
+
+    this.peerConnections.forEach((pc, connectionId) => {
+      const sender = pc.getSenders().find(s => s.track?.kind === 'audio');
+      if (sender) {
+        sender.replaceTrack(newTrack).catch(err => {
+          console.error(`Failed to replace track for peer ${connectionId}:`, err);
+        });
+      }
+    });
   }
 
   toggleMute() {
@@ -132,19 +165,16 @@ export class WebRtcService {
     this.isDeafened.set(newState);
     this.signalrService.updateState('deafened', newState);
 
-    // Mute microphone when deafened
     if (newState) {
-      this.lastMuteStateBeforePtt = this.isMuted(); // reuse this to track state
+      this.lastMuteStateBeforePtt = this.isMuted();
       this.setMicEnabled(false);
     } else {
-      // Un-mute microphone if it was active before deafening
       if (!this.isPttMode()) {
         this.setMicEnabled(!this.lastMuteStateBeforePtt);
       }
     }
 
-    // Update all gain nodes for deafen (Mute all)
-    this.participantGainNodes.forEach((gainNode, connectionId) => {
+    this.participantGainNodes.forEach((_, connectionId) => {
       this.applyParticipantVolume(connectionId);
     });
   }
@@ -166,9 +196,6 @@ export class WebRtcService {
 
     const participant = this.participantService.participants().find(p => p.connectionId === connectionId);
     const volumePercent = participant?.volume ?? 100;
-
-    // Gain value: 0.0 to 2.0 (representing 0% to 200%)
-    // If deafened, gain is always 0
     const gainValue = this.isDeafened() ? 0 : (volumePercent / 100);
 
     gainNode.gain.setTargetAtTime(gainValue, this.audioContext.currentTime, 0.01);
@@ -189,7 +216,7 @@ export class WebRtcService {
     const stream = this.localStream ?? await this.getLocalStream();
 
     const pc = new RTCPeerConnection(this.iceServers);
-    this.peerConnections.set(connectionId, pc); // set early so ICE callbacks can find it
+    this.peerConnections.set(connectionId, pc);
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
@@ -219,17 +246,14 @@ export class WebRtcService {
   }
 
   private getOrCreatePeerConnection(connectionId: string, isOfferor: boolean): Promise<RTCPeerConnection> {
-    // Already fully created
     const existing = this.peerConnections.get(connectionId);
     if (existing) return Promise.resolve(existing);
 
-    // Creation is in-flight — return the same promise instead of starting a second one
     const pending = this.pendingConnections.get(connectionId);
     if (pending) return pending;
 
-    // Start creation and track the promise
     const promise = this.createPeerConnection(connectionId, isOfferor)
-      .finally(() => this.pendingConnections.delete(connectionId)); // clean up when done
+      .finally(() => this.pendingConnections.delete(connectionId));
 
     this.pendingConnections.set(connectionId, promise);
     return promise;
@@ -237,7 +261,6 @@ export class WebRtcService {
 
   private async handleSignal(connectionId: string, signal: string) {
     const data = JSON.parse(signal);
-
     const pc = await this.getOrCreatePeerConnection(connectionId, false);
 
     if (data.sdp) {
@@ -260,7 +283,6 @@ export class WebRtcService {
       this.peerConnections.delete(connectionId);
       this.remoteStreams.delete(connectionId);
 
-      // Cleanup Audio Graph
       const source = this.participantSourceNodes.get(connectionId);
       if (source) {
         source.disconnect();
@@ -296,7 +318,7 @@ export class WebRtcService {
     source.connect(analyser);
 
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
-    const SPEAKING_THRESHOLD = 20; 
+    const SPEAKING_THRESHOLD = 20;
     const SILENCE_DEBOUNCE_MS = 800;
     let silenceTimer: ReturnType<typeof setTimeout> | null = null;
     let isSpeaking = false;
@@ -332,10 +354,8 @@ export class WebRtcService {
     this.initAudioContext();
 
     if (this.audioContext) {
-      // Process remote stream (e.g. High Pass Filter)
       const processedStream = this.audioProcessorService.processRemoteStream(connectionId, stream);
 
-      // Create Audio Graph for individual volume control (including boost > 1.0)
       try {
         const source = this.audioContext.createMediaStreamSource(processedStream);
         const gainNode = this.audioContext.createGain();
@@ -346,12 +366,9 @@ export class WebRtcService {
         this.participantSourceNodes.set(connectionId, source);
         this.participantGainNodes.set(connectionId, gainNode);
 
-        // Apply initial volume (from storage)
         this.applyParticipantVolume(connectionId);
-
         this.startVAD(connectionId, processedStream);
 
-        // Resume context on interaction if needed
         if (this.audioContext.state === 'suspended') {
           const resume = () => {
             this.audioContext?.resume();
@@ -364,16 +381,13 @@ export class WebRtcService {
       }
     }
 
-    // We still keep the HTMLAudioElement for autoplay policy handling and secondary fallback, 
-    // but we MUTE it so we don't hear double audio. 
-    // Attaching it to the DOM and calling play() is often required to keep the stream flowing.
     let audio = this.audioElements.get(connectionId);
     if (!audio) {
       audio = new Audio();
       audio.autoplay = true;
       audio.muted = true;
-      audio.style.display = 'none'; // Ensure it's hidden
-      document.body.appendChild(audio); // Append to DOM for better support (e.g. iOS)
+      audio.style.display = 'none';
+      document.body.appendChild(audio);
       this.audioElements.set(connectionId, audio);
     }
 
@@ -383,9 +397,9 @@ export class WebRtcService {
     if (playPromise !== undefined) {
       playPromise.catch(err => {
         if (err.name === 'NotAllowedError') {
-          console.warn('Autoplay blocked for peer:', connectionId, '. Will retry on next interaction.');
+          console.warn('Autoplay blocked for peer:', connectionId);
           const resumeAudio = () => {
-            this.audioElements.forEach(el => el.play().catch(() => { }));
+            this.audioElements.forEach(el => el.play().catch(() => {}));
             this.audioContext?.resume();
             document.removeEventListener('click', resumeAudio);
             document.removeEventListener('keydown', resumeAudio);
