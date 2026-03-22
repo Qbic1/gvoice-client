@@ -81,6 +81,15 @@ export class WebRtcService {
           this.chimesService.playScreenShareStart();
         } else {
           this.chimesService.playScreenShareStop();
+          
+          // If we were watching this peer's stream, close the overlay
+          const currentStream = this.currentStreamToWatch();
+          if (currentStream) {
+            const peerStream = this.remoteStreams.get(data.connectionId);
+            if (peerStream === currentStream) {
+              this.closeStream();
+            }
+          }
         }
       }
     });

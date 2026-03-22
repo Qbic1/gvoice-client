@@ -184,7 +184,10 @@ export class App implements OnInit, OnDestroy {
 
   private checkWidth() {
     if (typeof window !== 'undefined') {
-      this.isMobile.set(window.innerWidth < 768);
+      // If we are watching a stream, we want to stay in mobile layout 
+      // (which has the overlay support) even if rotation makes width > 768px.
+      const isWatching = this.webrtcService.currentStreamToWatch() !== null;
+      this.isMobile.set(window.innerWidth < 768 || isWatching);
     }
   }
 
