@@ -24,10 +24,9 @@ class NoiseGateProcessor extends AudioWorkletProcessor {
     const attack    = parameters.attack[0];
     const release   = parameters.release[0];
     const enabled   = parameters.enabled[0];
-
     const numChannels = Math.min(input.length, output.length);
 
-    // Bypass: pass audio through unchanged when gate is disabled
+    // Bypass: pass audio through unchanged
     if (enabled < 0.5) {
       for (let ch = 0; ch < numChannels; ch++) {
         if (input[ch] && output[ch]) output[ch].set(input[ch]);
@@ -35,28 +34,44 @@ class NoiseGateProcessor extends AudioWorkletProcessor {
       return true;
     }
 
-    // Use the AudioWorkletGlobalScope sampleRate global (always correct)
-    const attackCoef  = Math.exp(-1 / (attack  * sampleRate));
-    const releaseCoef = Math.exp(-1 / (release * sampleRate));
-
     const blockSize = input[0].length;
 
+    // FIX: Use block-level RMS for envelope detection instead of per-sample peak.
+    // Block RMS is more stable and matches the RMS calculation used in the UI
+    // meter, meaning the threshold line position accurately reflects where the
+    // gate opens/closes. Per-sample peak detection caused the threshold line to
+    // be miscalibrated (peak is ~1.4x higher than RMS for typical signals).
+    let sumSq = 0;
     for (let i = 0; i < blockSize; i++) {
-      const absInput = Math.abs(input[0][i]);
+      sumSq += input[0][i] * input[0][i];
+    }
+    const blockRms = Math.sqrt(sumSq / blockSize);
 
-      // Envelope follower with separate attack/release smoothing
-      if (absInput > this.envelope) {
-        this.envelope = attackCoef * this.envelope + (1 - attackCoef) * absInput;
-      } else {
-        this.envelope = releaseCoef * this.envelope + (1 - releaseCoef) * absInput;
-      }
+    // Envelope follower with separate attack/release — operates per-block.
+    // Per-block time constants are derived from blockSize / sampleRate.
+    const blockAttackCoef  = Math.exp(-blockSize / (attack  * sampleRate));
+    const blockReleaseCoef = Math.exp(-blockSize / (release * sampleRate));
 
-      // Smooth the gate gain to avoid clicks on open/close
-      const targetGain = this.envelope > threshold ? 1.0 : 0.0;
+    if (blockRms > this.envelope) {
+      this.envelope = blockAttackCoef  * this.envelope + (1 - blockAttackCoef)  * blockRms;
+    } else {
+      this.envelope = blockReleaseCoef * this.envelope + (1 - blockReleaseCoef) * blockRms;
+    }
+
+    // Binary gate decision based on smoothed envelope
+    const targetGain = this.envelope > threshold ? 1.0 : 0.0;
+
+    // Apply gain per-sample with smoothing to avoid clicks at gate open/close.
+    // Use per-sample coefficients here so the transition is smooth even within
+    // a single block (128 samples ≈ 2.7ms at 48kHz — audible if hard-switched).
+    const perSampleAttackCoef  = Math.exp(-1 / (attack  * sampleRate));
+    const perSampleReleaseCoef = Math.exp(-1 / (release * sampleRate));
+
+    for (let i = 0; i < blockSize; i++) {
       if (targetGain > this.gateGain) {
-        this.gateGain = attackCoef  * this.gateGain + (1 - attackCoef)  * targetGain;
+        this.gateGain = perSampleAttackCoef  * this.gateGain + (1 - perSampleAttackCoef)  * targetGain;
       } else {
-        this.gateGain = releaseCoef * this.gateGain + (1 - releaseCoef) * targetGain;
+        this.gateGain = perSampleReleaseCoef * this.gateGain + (1 - perSampleReleaseCoef) * targetGain;
       }
 
       for (let ch = 0; ch < numChannels; ch++) {

@@ -106,12 +106,13 @@ type Tab = 'theme' | 'audio' | 'controls';
           <div *ngIf="activeTab() === 'audio'">
             <div class="setting-item">
               <div class="setting-label-row">
-                <label>Input Level</label>
-                <span class="setting-hint">Live mic signal</span>
+                <label>Gated Output</label>
+                <span class="setting-hint">Post-gate signal</span>
               </div>
               <div class="meter-container">
                 <canvas #meterCanvas width="300" height="28" class="meter-canvas"></canvas>
               </div>
+              <p class="instruction">Bar drops to zero when gate is closed. Speak to see it open.</p>
             </div>
 
             <div class="setting-item">
@@ -122,19 +123,23 @@ type Tab = 'theme' | 'audio' | 'controls';
               <input
                 type="range"
                 min="0"
-                max="0.2"
+                max="0.3"
                 step="0.005"
                 [value]="noiseGateThreshold()"
                 (input)="updateThreshold($event)"
               >
-              <p class="instruction">Sounds below this level are silenced. Raise to cut background noise.</p>
+              <p class="instruction">
+                Raise until background noise (fan, breath) disappears during silence.
+                The red line shows the cutoff — bar goes silent below it.
+                Works independently of Audio Enhancements.
+              </p>
             </div>
 
             <div class="setting-item">
               <div class="enhancements-row">
                 <div class="enhancements-text">
                   <h4>Audio Enhancements</h4>
-                  <p>Echo cancellation, noise reduction &amp; compression.</p>
+                  <p>High-pass filter &amp; peak compression. Independent of noise gate.</p>
                 </div>
                 <button (click)="toggleEnhancements()" class="toggle-btn" [class.on]="enableAudioEnhancements()">
                   <span class="toggle-thumb" [class.on]="enableAudioEnhancements()"></span>
@@ -656,6 +661,11 @@ export class SettingsComponent implements AfterViewInit, OnDestroy {
   noiseGateThreshold = this.settingsService.noiseGateThreshold;
   isRecording = signal(false);
 
+  // Must match the max attribute on the range input.
+  // Both the signal bar and the threshold line are divided by this value
+  // so they share the same coordinate space and never go out of bounds.
+  private readonly METER_MAX = 0.3;
+
   private animationId: number | null = null;
   private analyser: AnalyserNode | null = null;
   private dataArray: Uint8Array<ArrayBuffer> | null = null;
@@ -704,7 +714,7 @@ export class SettingsComponent implements AfterViewInit, OnDestroy {
       }
       const rms = Math.sqrt(sum / this.dataArray.length);
 
-      const styles = getComputedStyle(document.documentElement);
+      const styles  = getComputedStyle(document.documentElement);
       const bgMuted = styles.getPropertyValue('--bg-muted').trim()  || '#2d1f4e';
       const accent  = styles.getPropertyValue('--accent').trim()    || '#a78bfa';
       const error   = styles.getPropertyValue('--error-500').trim() || '#ef4444';
@@ -713,11 +723,20 @@ export class SettingsComponent implements AfterViewInit, OnDestroy {
       ctx.fillStyle = bgMuted;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      const width = canvas.width * (rms * 5);
+      // Signal bar — normalised against METER_MAX so it fills the canvas exactly
+      // when the signal equals the slider's maximum value, and never overflows.
+      const barWidth = Math.min(canvas.width * (rms / this.METER_MAX), canvas.width);
       ctx.fillStyle = accent;
-      ctx.fillRect(0, 0, Math.min(width, canvas.width), canvas.height);
+      ctx.fillRect(0, 0, barWidth, canvas.height);
 
-      const thresholdPos = canvas.width * (this.noiseGateThreshold() * 5);
+      // Threshold line — uses the same METER_MAX divisor as the bar, so the line
+      // always tracks the slider position and stays within the canvas bounds.
+      // At threshold = 0   → line at left edge  (0 % of canvas)
+      // At threshold = 0.3 → line at right edge (100% of canvas, clamped to -1px)
+      const thresholdPos = Math.min(
+        canvas.width * (this.noiseGateThreshold() / this.METER_MAX),
+        canvas.width - 1  // keep 1 px visible when slider is at maximum
+      );
       ctx.strokeStyle = error;
       ctx.lineWidth = 2;
       ctx.beginPath();
