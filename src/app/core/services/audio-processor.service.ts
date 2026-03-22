@@ -57,7 +57,8 @@ export class AudioProcessorService {
 
     try {
       // FIX: audio-worklet.js moved to public/ for proper serving.
-      await ctx.audioWorklet.addModule('audio-worklet.js');
+      // Use absolute path so it works on routed pages (e.g. /room/123)
+      await ctx.audioWorklet.addModule('/audio-worklet.js');
       this.workletReady.set(true);
       console.log('AudioWorklets loaded successfully');
       return true;

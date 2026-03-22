@@ -34,6 +34,7 @@ export class WebRtcService {
   public localStream$ = new ReplaySubject<MediaStream>(1);
   public screenStream$ = new ReplaySubject<MediaStream | null>(1);
   public peerStreamAdded$ = new Subject<{ connectionId: string, stream: MediaStream }>();
+  public currentStreamToWatch = signal<MediaStream | null>(null);
 
   isMuted = signal(false);
   isPttMode = signal(false);
@@ -48,6 +49,7 @@ export class WebRtcService {
   // Perfect Negotiation state
   private makingOffer = new Map<string, boolean>();
   private ignoreOffer = new Map<string, boolean>();
+  private iceCandidatesQueue = new Map<string, RTCIceCandidateInit[]>();
 
   private iceServers: RTCConfiguration = {
     iceServers: environment.iceServers,
@@ -209,6 +211,17 @@ export class WebRtcService {
 
   getStream(connectionId: string): MediaStream | undefined {
     return this.remoteStreams.get(connectionId);
+  }
+
+  watchStream(connectionId: string) {
+    const stream = this.getStream(connectionId);
+    if (stream) {
+      this.currentStreamToWatch.set(stream);
+    }
+  }
+
+  closeStream() {
+    this.currentStreamToWatch.set(null);
   }
 
   setParticipantVolume(connectionId: string, volume: number) {
@@ -404,13 +417,31 @@ export class WebRtcService {
         }
 
         await pc.setRemoteDescription(description);
+
+        // Process queued ICE candidates
+        const queue = this.iceCandidatesQueue.get(connectionId);
+        if (queue) {
+          console.log(`[WebRTC] Processing ${queue.length} queued ICE candidates for ${connectionId}`);
+          for (const candidate of queue) {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          }
+          this.iceCandidatesQueue.delete(connectionId);
+        }
+
         if (description.type === 'offer') {
           await pc.setLocalDescription();
           this.signalrService.sendSignal(connectionId, JSON.stringify({ sdp: pc.localDescription }));
         }
       } else if (data.ice) {
         try {
-          await pc.addIceCandidate(new RTCIceCandidate(data.ice));
+          if (pc.remoteDescription) {
+            await pc.addIceCandidate(new RTCIceCandidate(data.ice));
+          } else {
+            // Queue candidate if remote description not yet set
+            const queue = this.iceCandidatesQueue.get(connectionId) || [];
+            queue.push(data.ice);
+            this.iceCandidatesQueue.set(connectionId, queue);
+          }
         } catch (err) {
           if (!this.ignoreOffer.get(connectionId)) {
             throw err;
@@ -508,7 +539,7 @@ export class WebRtcService {
     if (!this.isBrowser) return;
     this.initAudioContext();
 
-    if (this.audioContext) {
+    if (this.audioContext && stream.getAudioTracks().length > 0) {
       const processedStream = this.audioProcessorService.processRemoteStream(connectionId, stream);
 
       try {
@@ -536,33 +567,36 @@ export class WebRtcService {
       }
     }
 
-    let audio = this.audioElements.get(connectionId);
-    if (!audio) {
-      audio = new Audio();
-      audio.autoplay = true;
-      audio.muted = true;
-      audio.style.display = 'none';
-      document.body.appendChild(audio);
-      this.audioElements.set(connectionId, audio);
-    }
+    // Still create audio element for video streams, but only if they have audio
+    if (stream.getAudioTracks().length > 0) {
+      let audio = this.audioElements.get(connectionId);
+      if (!audio) {
+        audio = new Audio();
+        audio.autoplay = true;
+        audio.muted = true;
+        audio.style.display = 'none';
+        document.body.appendChild(audio);
+        this.audioElements.set(connectionId, audio);
+      }
 
-    audio.srcObject = stream;
+      audio.srcObject = stream;
 
-    const playPromise = audio.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(err => {
-        if (err.name === 'NotAllowedError') {
-          console.warn('Autoplay blocked for peer:', connectionId);
-          const resumeAudio = () => {
-            this.audioElements.forEach(el => el.play().catch(() => {}));
-            this.audioContext?.resume();
-            document.removeEventListener('click', resumeAudio);
-            document.removeEventListener('keydown', resumeAudio);
-          };
-          document.addEventListener('click', resumeAudio);
-          document.addEventListener('keydown', resumeAudio);
-        }
-      });
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          if (err.name === 'NotAllowedError') {
+            console.warn('Autoplay blocked for peer:', connectionId);
+            const resumeAudio = () => {
+              this.audioElements.forEach(el => el.play().catch(() => {}));
+              this.audioContext?.resume();
+              document.removeEventListener('click', resumeAudio);
+              document.removeEventListener('keydown', resumeAudio);
+            };
+            document.addEventListener('click', resumeAudio);
+            document.addEventListener('keydown', resumeAudio);
+          }
+        });
+      }
     }
   }
 }

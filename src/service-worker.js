@@ -1,4 +1,4 @@
-const CACHE_NAME = 'voiceroom-v2';
+const CACHE_NAME = 'voiceroom-v3';
 const STATIC_ASSETS = [
   '/manifest.webmanifest',
   '/favicon.ico'
@@ -55,7 +55,10 @@ self.addEventListener('fetch', (event) => {
   // For remaining static assets (favicon, manifest), use cache-first
   event.respondWith(
     caches.match(event.request).then((response) =>
-      response || fetch(event.request)
+      response || fetch(event.request).catch((err) => {
+        console.error('[SW] Fetch failed for:', event.request.url, err);
+        throw err;
+      })
     )
   );
 });

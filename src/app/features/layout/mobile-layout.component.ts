@@ -314,18 +314,15 @@ export class MobileLayoutComponent {
   activeTab = signal<MobileTab>('room');
 
   webrtcService = inject(WebRtcService);
-  streamToWatch = signal<MediaStream | null>(null);
+  streamToWatch = this.webrtcService.currentStreamToWatch;
 
   @Output() onRejoin = new EventEmitter<void>();
 
   watchStream(connectionId: string) {
-    const stream = this.webrtcService.getStream(connectionId);
-    if (stream) {
-      this.streamToWatch.set(stream);
-    }
+    this.webrtcService.watchStream(connectionId);
   }
 
   closeStream() {
-    this.streamToWatch.set(null);
+    this.webrtcService.closeStream();
   }
 }

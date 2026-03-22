@@ -235,7 +235,7 @@ export class DesktopLayoutComponent {
   isLocalSharing = this.webrtcService.isSharingScreen;
   isAnyScreenSharing = this.participantService.isAnyScreenSharing;
 
-  streamToWatch = signal<MediaStream | null>(null);
+  streamToWatch = this.webrtcService.currentStreamToWatch;
 
   @Output() onRejoin = new EventEmitter<void>();
   @Output() onShowSettings = new EventEmitter<void>();
@@ -249,13 +249,10 @@ export class DesktopLayoutComponent {
   }
 
   watchStream(connectionId: string) {
-    const stream = this.webrtcService.getStream(connectionId);
-    if (stream) {
-      this.streamToWatch.set(stream);
-    }
+    this.webrtcService.watchStream(connectionId);
   }
 
   closeStream() {
-    this.streamToWatch.set(null);
+    this.webrtcService.closeStream();
   }
 }
