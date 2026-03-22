@@ -23,8 +23,9 @@ import { IconService } from '../../core/services/icon.service';
           <span class="name">{{ participant().displayName }}</span>
           <span *ngIf="participant().isSharingScreen" 
                 class="stream-badge" 
-                title="Watch Stream"
-                (click)="$event.stopPropagation(); onWatchStream.emit()">
+                [class.disabled]="isLocal()"
+                [title]="isLocal() ? 'You are sharing' : 'Watch Stream'"
+                (click)="$event.stopPropagation(); !isLocal() && onWatchStream.emit()">
             <span class="icon" [innerHTML]="icons.EYE"></span>
           </span>
         </div>
@@ -129,6 +130,14 @@ import { IconService } from '../../core/services/icon.service';
     .stream-badge:hover {
       background: var(--accent);
       color: #fff;
+    }
+    .stream-badge.disabled {
+      cursor: default;
+      opacity: 0.6;
+    }
+    .stream-badge.disabled:hover {
+      background: var(--accent-subtle);
+      color: var(--accent);
     }
     .stream-badge .icon {
       display: flex;

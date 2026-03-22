@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IconService } from '../../core/services/icon.service';
 
@@ -10,9 +10,15 @@ import { IconService } from '../../core/services/icon.service';
     <div class="overlay-backdrop" (click)="close()">
       <div class="overlay-content" (click)="$event.stopPropagation()">
         <video #videoPlayer autoplay muted playsinline [srcObject]="stream"></video>
-        <button class="close-btn" (click)="close()">
-          <span class="icon" [innerHTML]="icons.CLOSE"></span>
-        </button>
+        
+        <div class="overlay-actions">
+          <button class="action-btn" (click)="toggleFullscreen()" title="Toggle Fullscreen">
+            <span class="icon" [innerHTML]="icons.FULLSCREEN"></span>
+          </button>
+          <button class="action-btn close-btn" (click)="close()" title="Close">
+            <span class="icon" [innerHTML]="icons.CLOSE"></span>
+          </button>
+        </div>
       </div>
     </div>
   `,
@@ -73,13 +79,18 @@ import { IconService } from '../../core/services/icon.service';
       height: 100%;
       object-fit: contain;
     }
-    .close-btn {
+    .overlay-actions {
       position: absolute;
       top: 1rem;
       right: 1rem;
-      background: rgba(255, 255, 255, 0.2);
+      display: flex;
+      gap: 0.5rem;
+      z-index: 1010;
+    }
+    .action-btn {
+      background: rgba(255, 255, 255, 0.15);
       color: white;
-      border: none;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 8px;
       width: 40px;
       height: 40px;
@@ -89,23 +100,31 @@ import { IconService } from '../../core/services/icon.service';
       cursor: pointer;
       transition: all 0.2s;
       backdrop-filter: blur(8px);
-      z-index: 1010;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: scale(1.05);
+    }
+    .close-btn:hover {
+      background: var(--error-500);
+      border-color: var(--error-500);
     }
     @media (max-width: 768px) {
-      .close-btn {
+      .overlay-actions {
         top: 0.5rem;
         right: 0.5rem;
+      }
+      .action-btn {
         width: 36px;
         height: 36px;
       }
     }
-    .close-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-      transform: scale(1.05);
-    }
     .icon {
       display: flex;
+    }
+    ::ng-deep .icon svg {
+      width: 20px;
+      height: 20px;
     }
   `]
 })
@@ -114,6 +133,19 @@ export class ScreenShareOverlayComponent {
   
   @Input({ required: true }) stream!: MediaStream;
   @Output() closeOverlay = new EventEmitter<void>();
+
+  @ViewChild('videoPlayer') videoPlayer!: ElementRef<HTMLVideoElement>;
+
+  toggleFullscreen() {
+    const video = this.videoPlayer.nativeElement;
+    if (video.requestFullscreen) {
+      video.requestFullscreen();
+    } else if ((video as any).webkitRequestFullscreen) {
+      (video as any).webkitRequestFullscreen();
+    } else if ((video as any).msRequestFullscreen) {
+      (video as any).msRequestFullscreen();
+    }
+  }
 
   close() {
     this.closeOverlay.emit();
