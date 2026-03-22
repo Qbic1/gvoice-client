@@ -24,9 +24,10 @@ class NoiseGateProcessor extends AudioWorkletProcessor {
     const attack    = parameters.attack[0];
     const release   = parameters.release[0];
     const enabled   = parameters.enabled[0];
+
     const numChannels = Math.min(input.length, output.length);
 
-    // Bypass: pass audio through unchanged
+    // Bypass: pass audio through unchanged when gate is disabled
     if (enabled < 0.5) {
       for (let ch = 0; ch < numChannels; ch++) {
         if (input[ch] && output[ch]) output[ch].set(input[ch]);
