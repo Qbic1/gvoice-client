@@ -1,4 +1,4 @@
-import { Component, inject, HostListener, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, HostListener, signal, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { JoinRoomComponent } from './features/room/join-room.component';
@@ -9,6 +9,7 @@ import { SignalRService } from './core/services/signalr.service';
 import { WebRtcService } from './core/services/webrtc.service';
 import { ChimesService } from './core/services/chimes.service';
 import { SettingsService } from './core/services/settings.service';
+import { LayoutService } from './core/services/layout.service';
 import { ThemeService } from './core/services/theme.service'; // 👈 add
 import { Subscription } from 'rxjs';
 
@@ -19,7 +20,7 @@ import { Subscription } from 'rxjs';
   template: `
     <main (keydown)="onKeyDown($event)" (keyup)="onKeyUp($event)" class="app-container">
       <app-join-room *ngIf="connectionStatus() !== 'Connected'"></app-join-room>
-      
+
       <div *ngIf="connectionStatus() === 'Connecting'" class="status-container">
         <div class="loader"></div>
         <p>Connecting to room...</p>
@@ -150,6 +151,7 @@ export class App implements OnInit, OnDestroy {
   private webrtcService = inject(WebRtcService);
   private chimesService = inject(ChimesService);
   private settingsService = inject(SettingsService);
+  private layoutService = inject(LayoutService);
   private themeService = inject(ThemeService); // 👈 eagerly instantiates the service so the
                                                //    data-theme attribute is set before first paint
 
@@ -157,11 +159,7 @@ export class App implements OnInit, OnDestroy {
 
   connectionStatus = this.signalrService.connectionStatus;
   showSettings = signal(false);
-  isMobile = signal(false);
-
-  constructor() {
-    this.checkWidth();
-  }
+  isMobile = this.layoutService.isMobile;
 
   ngOnInit() {
     this.subscriptions.add(this.signalrService.peerJoined$.subscribe(() => {
@@ -175,20 +173,6 @@ export class App implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.subscriptions.unsubscribe();
-  }
-
-  @HostListener('window:resize')
-  onResize() {
-    this.checkWidth();
-  }
-
-  private checkWidth() {
-    if (typeof window !== 'undefined') {
-      // If we are watching a stream, we want to stay in mobile layout 
-      // (which has the overlay support) even if rotation makes width > 768px.
-      const isWatching = this.webrtcService.currentStreamToWatch() !== null;
-      this.isMobile.set(window.innerWidth < 768 || isWatching);
-    }
   }
 
   rejoin() {

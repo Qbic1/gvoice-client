@@ -1,8 +1,9 @@
-import { Component, inject, computed, signal, HostListener, OnInit } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { WebRtcService } from '../../core/services/webrtc.service';
 import { ParticipantService } from '../../core/services/participant.service';
 import { IconService } from '../../core/services/icon.service';
+import { LayoutService } from '../../core/services/layout.service';
 
 @Component({
   selector: 'app-voice-controls',
@@ -194,9 +195,10 @@ import { IconService } from '../../core/services/icon.service';
     }
   `]
 })
-export class VoiceControlsComponent implements OnInit {
+export class VoiceControlsComponent {
   private webrtcService = inject(WebRtcService);
   private participantService = inject(ParticipantService);
+  private layoutService = inject(LayoutService);
   icons = inject(IconService);
 
   isMuted = this.webrtcService.isMuted;
@@ -205,18 +207,7 @@ export class VoiceControlsComponent implements OnInit {
   isDeafened = this.webrtcService.isDeafened;
   isListenOnly = computed(() => this.participantService.localParticipant()?.isListenOnly ?? false);
 
-  isMobile = signal(false);
-
-  ngOnInit() { this.checkWidth(); }
-
-  @HostListener('window:resize')
-  onResize() { this.checkWidth(); }
-
-  private checkWidth() {
-    if (typeof window !== 'undefined') {
-      this.isMobile.set(window.innerWidth < 768);
-    }
-  }
+  isMobile = this.layoutService.isMobile;
 
   toggleMute()     { this.hapticFeedback(); this.webrtcService.toggleMute(); }
   togglePttMode()  { this.hapticFeedback(); this.webrtcService.togglePttMode(); }
