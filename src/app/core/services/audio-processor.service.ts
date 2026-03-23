@@ -59,6 +59,8 @@ export class AudioProcessorService {
       // FIX: audio-worklet.js moved to public/ for proper serving.
       // Use absolute path so it works on routed pages (e.g. /room/123)
       await ctx.audioWorklet.addModule('/audio-worklet.js');
+      await ctx.audioWorklet.addModule('/vad-worklet.js');
+
       this.workletReady.set(true);
       console.log('AudioWorklets loaded successfully');
       return true;
@@ -125,7 +127,7 @@ export class AudioProcessorService {
     const ctx = this.audioContext;
     if (!ctx || stream.getAudioTracks().length === 0) return stream;
 
-    const source      = ctx.createMediaStreamSource(stream);
+    const source = ctx.createMediaStreamSource(stream);
     const destination = ctx.createMediaStreamDestination();
 
     // 1. High Pass Filter — removes low-frequency rumble (mic handling noise, HVAC)
@@ -202,7 +204,7 @@ export class AudioProcessorService {
     const ctx = this.audioContext;
     if (!ctx || stream.getAudioTracks().length === 0) return stream;
 
-    const source      = ctx.createMediaStreamSource(stream);
+    const source = ctx.createMediaStreamSource(stream);
     const destination = ctx.createMediaStreamDestination();
 
     const hpFilter = ctx.createBiquadFilter();
@@ -220,20 +222,20 @@ export class AudioProcessorService {
 
   cleanupLocal() {
     this.localNodes.forEach(node => {
-      try { node.disconnect(); } catch (e) {}
+      try { node.disconnect(); } catch (e) { }
     });
     this.localNodes = [];
-    this.localHpFilter    = null;
-    this.localCompressor  = null;
-    this.localNoiseGate   = null;
-    this.localAnalyser    = null;
+    this.localHpFilter = null;
+    this.localCompressor = null;
+    this.localNoiseGate = null;
+    this.localAnalyser = null;
   }
 
   cleanupRemote(connectionId: string) {
     const nodes = this.remoteNodesMap.get(connectionId);
     if (nodes) {
       nodes.forEach(node => {
-        try { node.disconnect(); } catch (e) {}
+        try { node.disconnect(); } catch (e) { }
       });
       this.remoteNodesMap.delete(connectionId);
     }

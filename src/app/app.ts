@@ -153,7 +153,7 @@ export class App implements OnInit, OnDestroy {
   private settingsService = inject(SettingsService);
   private layoutService = inject(LayoutService);
   private themeService = inject(ThemeService); // 👈 eagerly instantiates the service so the
-                                               //    data-theme attribute is set before first paint
+  //    data-theme attribute is set before first paint
 
   private subscriptions = new Subscription();
 
@@ -169,6 +169,16 @@ export class App implements OnInit, OnDestroy {
     this.subscriptions.add(this.signalrService.peerLeft$.subscribe(() => {
       this.chimesService.playLeaveChime();
     }));
+
+    document.addEventListener('visibilitychange', () => {
+      const hidden = document.hidden;
+
+      if (hidden) {
+        document.body.classList.add('app-background');
+      } else {
+        document.body.classList.remove('app-background');
+      }
+    });
   }
 
   ngOnDestroy() {

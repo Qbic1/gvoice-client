@@ -85,7 +85,7 @@ import { IconService } from '../../core/services/icon.service';
       border: 2px solid var(--success-500);
       border-radius: 50%;
       animation: pulse-ring 1.5s cubic-bezier(0.24, 0, 0.38, 1) infinite;
-      box-shadow: 0 0 10px var(--success-500);
+      outline: 2px solid var(--success-500);
     }
     @keyframes pulse-ring {
       0%   { transform: scale(0.95); opacity: 1; }

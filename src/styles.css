@@ -180,3 +180,26 @@ body {
 *, *::before, *::after {
   box-sizing: border-box;
 }
+
+.app-background * {
+  animation: none !important;
+  transition: none !important;
+  caret-color: transparent !important;
+}
+
+/* 🔥 kill expensive blur */
+.app-background .volume-overlay {
+  backdrop-filter: none !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* 🔥 kill speaking animation */
+.app-background .speaking-ring {
+  animation: none !important;
+  box-shadow: none !important;
+}
+
+/* optional: reduce UI cost heavily */
+.app-background .participant-list {
+  will-change: auto !important;
+}

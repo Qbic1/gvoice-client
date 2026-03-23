@@ -45,7 +45,7 @@ export class WebRtcService {
 
   private screenStream: MediaStream | null = null;
   private screenSenders = new Map<string, RTCRtpSender[]>();
-  
+
   // Perfect Negotiation state
   private makingOffer = new Map<string, boolean>();
   private ignoreOffer = new Map<string, boolean>();
@@ -81,7 +81,7 @@ export class WebRtcService {
           this.chimesService.playScreenShareStart();
         } else {
           this.chimesService.playScreenShareStop();
-          
+
           // If we were watching this peer's stream, close the overlay
           const currentStream = this.currentStreamToWatch();
           if (currentStream) {
@@ -353,7 +353,7 @@ export class WebRtcService {
     if (!this.screenStream) return;
 
     this.screenStream.getTracks().forEach(track => track.stop());
-    
+
     // Remove tracks from all peer connections
     this.peerConnections.forEach((pc, connectionId) => {
       this.removeScreenTracksFromPeer(connectionId, pc);
@@ -501,47 +501,26 @@ export class WebRtcService {
     }
   }
 
-  private startVAD(connectionId: string, stream: MediaStream) {
+  private startVADWorklet(connectionId: string, stream: MediaStream) {
     if (!this.audioContext) return;
 
-    const analyser = this.audioContext.createAnalyser();
-    analyser.fftSize = 512;
-    analyser.smoothingTimeConstant = 0.3;
+    try {
+      const source = this.audioContext.createMediaStreamSource(stream);
+      const vadNode = new AudioWorkletNode(this.audioContext, 'vad-processor');
 
-    const source = this.participantSourceNodes.get(connectionId);
-    if (!source) return;
-    source.connect(analyser);
+      source.connect(vadNode);
 
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-    const SPEAKING_THRESHOLD = 20;
-    const SILENCE_DEBOUNCE_MS = 800;
-    let silenceTimer: ReturnType<typeof setTimeout> | null = null;
-    let isSpeaking = false;
+      vadNode.port.onmessage = (event) => {
+        const speaking = !!event.data;
+        this.participantService.updateSpeakingStatus(connectionId, speaking);
+      };
 
-    const interval = setInterval(() => {
-      if (!this.participantSourceNodes.has(connectionId)) {
-        clearInterval(interval);
-        return;
-      }
-      analyser.getByteFrequencyData(dataArray);
-      const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+      // store to prevent GC
+      this.participantSourceNodes.set(connectionId, source);
 
-      if (avg > SPEAKING_THRESHOLD) {
-        if (!isSpeaking) {
-          isSpeaking = true;
-          this.participantService.updateSpeakingStatus(connectionId, true);
-        }
-        if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
-      } else {
-        if (isSpeaking && !silenceTimer) {
-          silenceTimer = setTimeout(() => {
-            isSpeaking = false;
-            this.participantService.updateSpeakingStatus(connectionId, false);
-            silenceTimer = null;
-          }, SILENCE_DEBOUNCE_MS);
-        }
-      }
-    }, 100);
+    } catch (err) {
+      console.error('VAD worklet failed:', err);
+    }
   }
 
   private playRemoteStream(connectionId: string, stream: MediaStream) {
@@ -562,7 +541,7 @@ export class WebRtcService {
         this.participantGainNodes.set(connectionId, gainNode);
 
         this.applyParticipantVolume(connectionId);
-        this.startVAD(connectionId, processedStream);
+        this.startVADWorklet(connectionId, processedStream);
 
         if (this.audioContext.state === 'suspended') {
           const resume = () => {
@@ -596,7 +575,7 @@ export class WebRtcService {
           if (err.name === 'NotAllowedError') {
             console.warn('Autoplay blocked for peer:', connectionId);
             const resumeAudio = () => {
-              this.audioElements.forEach(el => el.play().catch(() => {}));
+              this.audioElements.forEach(el => el.play().catch(() => { }));
               this.audioContext?.resume();
               document.removeEventListener('click', resumeAudio);
               document.removeEventListener('keydown', resumeAudio);

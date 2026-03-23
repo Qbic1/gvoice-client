@@ -104,8 +104,7 @@ import { ParticipantCardComponent } from './participant-card.component';
     .volume-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(2px);
+      background: rgba(0, 0, 0, 0.6);
       z-index: 1000;
       display: flex;
       align-items: center;
@@ -240,6 +239,8 @@ export class ParticipantListComponent {
   }
 
   onVolumeChange(value: number) {
+    if (document.hidden) return; // 🔥 prevent background spam
+
     const p = this.selectedParticipant();
     if (p) {
       this.webrtcService.setParticipantVolume(p.connectionId, value);
