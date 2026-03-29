@@ -2,6 +2,7 @@ import { Injectable, inject, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { SignalRService } from './signalr.service';
 import { ParticipantService } from './participant.service';
+import { SettingsService } from './settings.service';
 import { AudioProcessorService } from './audio-processor.service';
 import { ChimesService } from './chimes.service';
 import { Subject, ReplaySubject, firstValueFrom } from 'rxjs';
@@ -15,6 +16,7 @@ export class WebRtcService {
   private isBrowser = isPlatformBrowser(this.platformId);
   private signalrService = inject(SignalRService);
   private participantService = inject(ParticipantService);
+  private settingsService = inject(SettingsService);
   private audioProcessorService = inject(AudioProcessorService);
   private chimesService = inject(ChimesService);
 
@@ -110,29 +112,33 @@ export class WebRtcService {
     const ctx = this.audioContext;
   }
 
-  async getLocalStream(): Promise<MediaStream | null> {
+  async getLocalStream(forceReinit = false): Promise<MediaStream | null> {
     if (!this.isBrowser) return null;
-    if (this.localStream) return this.localStream;
+    
+    if (this.localStream && !forceReinit) return this.localStream;
+
+    if (forceReinit && this.localStream) {
+      this.localStream.getTracks().forEach(t => t.stop());
+      this.localStream = null;
+    }
 
     this.initAudioContext();
     try {
-      // FIX: Request getUserMedia with explicit noise suppression constraints.
-      //
-      // The browser's built-in noiseSuppression and echoCancellation are applied
-      // at the hardware/driver level and are far more effective than anything we
-      // can do in the Web Audio API. Enabling them here means our Web Audio graph
-      // only needs to handle gating and gentle peak limiting — not heavy lifting.
-      //
-      // We also disable autoGainControl because our compressor handles gain; 
-      // browser AGC and a compressor fighting each other causes pumping artifacts.
+      const inputId = this.settingsService.inputDeviceId();
+      const audioConstraints: any = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: false, // let our compressor handle this
+        sampleRate: 48000,
+        channelCount: 1,        // mono — halves worklet processing load
+      };
+
+      if (inputId && inputId !== 'default') {
+        audioConstraints.deviceId = { exact: inputId };
+      }
+
       this.localStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: false, // let our compressor handle this
-          sampleRate: 48000,
-          channelCount: 1,        // mono — halves worklet processing load
-        },
+        audio: audioConstraints,
         video: false
       });
 
@@ -153,6 +159,32 @@ export class WebRtcService {
     } catch (err) {
       console.error('Error getting local stream:', err);
       return null;
+    }
+  }
+
+  async updateOutputDevice(deviceId: string) {
+    if (!this.isBrowser) return;
+
+    const outputId = deviceId === 'default' ? '' : deviceId;
+
+    // Apply to AudioContext
+    if (this.audioContext && 'setSinkId' in this.audioContext) {
+      try {
+        await (this.audioContext as any).setSinkId(outputId);
+      } catch (err) {
+        console.error('Failed to set sink ID on AudioContext:', err);
+      }
+    }
+
+    // Apply to all active remote audio elements
+    for (const audio of this.audioElements.values()) {
+      if ('setSinkId' in audio) {
+        try {
+          await (audio as any).setSinkId(outputId);
+        } catch (err) {
+          console.error('Failed to set sink ID on audio element:', err);
+        }
+      }
     }
   }
 

@@ -76,7 +76,10 @@ import { AdminService } from '../../core/services/admin.service';
           </div>
 
           <div class="grid" *ngIf="rooms().length > 0">
-            <div *ngFor="let room of rooms()" class="room-card" [routerLink]="['/room', room.id]">
+            <div *ngFor="let room of rooms()" 
+                 class="room-card" 
+                 [class.active-card]="activeRoomId() === room.id"
+                 [routerLink]="['/room', room.id]">
               <div class="room-avatar" [style.background]="getRoomColor(room.name)">
                 {{ room.name.charAt(0).toUpperCase() }}
               </div>
@@ -95,13 +98,41 @@ import { AdminService } from '../../core/services/admin.service';
                   </span>
                 </div>
               </div>
-              <div class="join-btn" [class.full]="room.participantCount >= 10">
-                <span *ngIf="room.participantCount < 10">Join</span>
-                <span *ngIf="room.participantCount >= 10">Full</span>
-                <svg *ngIf="room.participantCount < 10" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12"/>
-                  <polyline points="12 5 19 12 12 19"/>
-                </svg>
+
+              <div class="room-actions">
+                <button class="info-btn" 
+                        (click)="toggleParticipants($event, room.id)"
+                        [class.active]="activeRoomId() === room.id">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                  </svg>
+                </button>
+
+                <div class="join-btn" [class.full]="room.participantCount >= 10">
+                  <span *ngIf="room.participantCount < 10">Join</span>
+                  <span *ngIf="room.participantCount >= 10">Full</span>
+                  <svg *ngIf="room.participantCount < 10" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                    <polyline points="12 5 19 12 12 19"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Participant Popover -->
+              <div class="participants-popover" *ngIf="activeRoomId() === room.id">
+                <div class="popover-header">
+                  <span>Participants</span>
+                  <span class="popover-count">{{ activeParticipants().length }}</span>
+                </div>
+                <div class="popover-list" *ngIf="activeParticipants().length > 0">
+                  <div *ngFor="let name of activeParticipants()" class="participant-item">
+                    <div class="status-dot"></div>
+                    <span class="participant-name">{{ name }}</span>
+                  </div>
+                </div>
+                <div class="popover-empty" *ngIf="activeParticipants().length === 0">
+                  No one here yet
+                </div>
               </div>
             </div>
           </div>
@@ -421,6 +452,7 @@ import { AdminService } from '../../core/services/admin.service';
       box-shadow: var(--shadow-sm);
       text-decoration: none;
       -webkit-tap-highlight-color: transparent;
+      position: relative;
     }
     .room-card:hover, .room-card:active {
       border-color: var(--accent);
@@ -435,6 +467,37 @@ import { AdminService } from '../../core/services/admin.service';
       .room-card { border-radius: 14px; padding: 1.125rem 1.25rem; gap: 1rem; }
       .room-card:hover { transform: translateY(-2px); }
     }
+    .room-card.active-card {
+      z-index: 20;
+      border-color: var(--accent);
+    }
+
+    .room-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .info-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1.5px solid var(--border);
+      background: var(--bg-base);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .info-btn:hover, .info-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-subtle);
+    }
+
     .room-avatar {
       width: 38px; height: 38px;
       border-radius: 9px;
@@ -504,6 +567,112 @@ import { AdminService } from '../../core/services/admin.service';
       border-color: color-mix(in srgb, var(--error-500) 30%, transparent);
       color: var(--error-500);
       background: color-mix(in srgb, var(--error-500) 8%, var(--bg-surface));
+    }
+
+    /* ── Participants Popover ── */
+    .participants-popover {
+      position: absolute;
+      left: calc(100% + 12px);
+      top: 50%;
+      transform: translateY(-50%);
+      width: 180px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.75rem;
+      box-shadow: var(--shadow-lg);
+      z-index: 10;
+      animation: popIn 0.2s ease-out;
+    }
+    .participants-popover::after {
+      content: '';
+      position: absolute;
+      right: 100%;
+      top: 50%;
+      margin-top: -6px;
+      border-width: 6px;
+      border-style: solid;
+      border-color: transparent var(--border) transparent transparent;
+    }
+    @media (max-width: 800px) {
+      /* On smaller screens where space is tight, show below or handle differently */
+      .participants-popover {
+        left: auto;
+        right: 0;
+        top: calc(100% + 8px);
+        transform: none;
+        width: 100%;
+      }
+      .participants-popover::after { display: none; }
+    }
+
+    .popover-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.625rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .popover-header span:first-child {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+    .popover-count {
+      background: var(--bg-muted);
+      color: var(--text-secondary);
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+    }
+
+    .popover-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+    .participant-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--success-500);
+      flex-shrink: 0;
+    }
+    .participant-name {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .popover-empty {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 0.25rem 0;
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: translateY(-50%) scale(0.95); }
+      to { opacity: 1; transform: translateY(-50%) scale(1); }
+    }
+    @media (max-width: 800px) {
+      @keyframes popIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
     }
 
     /* ── Empty state ── */
@@ -667,6 +836,9 @@ export class LobbyComponent implements OnInit {
   showCreateRoom = signal(false);
   errorMessage = signal<string | null>(null);
 
+  activeRoomId = signal<string | null>(null);
+  activeParticipants = signal<string[]>([])
+
   adminPasswordInput = '';
   newRoomName = '';
   newRoomPassword = '';
@@ -677,6 +849,18 @@ export class LobbyComponent implements OnInit {
     this.signalrService.roomCreated$.subscribe(async () => {
       this.rooms.set(await this.signalrService.fetchRooms());
     });
+  }
+
+  async toggleParticipants(event: Event, roomId: string) {
+    event.stopPropagation();
+    event.preventDefault();
+    if (this.activeRoomId() === roomId) {
+      this.activeRoomId.set(null);
+      this.activeParticipants.set([]);
+    } else {
+      this.activeRoomId.set(roomId);
+      this.activeParticipants.set(await this.signalrService.fetchRoomParticipants(roomId));
+    }
   }
 
   getRoomColor(name: string): string {

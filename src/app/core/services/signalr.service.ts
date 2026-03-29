@@ -36,6 +36,9 @@ export class SignalRService {
   connectionStatus = signal<'Disconnected' | 'Connecting' | 'Connected' | 'Error'>('Disconnected');
   connectionId = signal<string | null>(null);
 
+  private participantCache = new Map<string, { names: string[], timestamp: number }>();
+  private CACHE_DURATION = 10000; // 10 seconds
+
   constructor() {}
 
   async fetchRooms(): Promise<RoomInfo[]> {
@@ -43,6 +46,22 @@ export class SignalRService {
       return await firstValueFrom(this.http.get<RoomInfo[]>(`${environment.rootUrl}/rooms`));
     } catch (err) {
       console.error('Failed to fetch rooms:', err);
+      return [];
+    }
+  }
+
+  async fetchRoomParticipants(roomId: string): Promise<string[]> {
+    const cached = this.participantCache.get(roomId);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      return cached.names;
+    }
+
+    try {
+      const names = await firstValueFrom(this.http.get<string[]>(`${environment.rootUrl}/rooms/${roomId}/participants`));
+      this.participantCache.set(roomId, { names, timestamp: Date.now() });
+      return names;
+    } catch (err) {
+      console.error(`Failed to fetch participants for room ${roomId}:`, err);
       return [];
     }
   }

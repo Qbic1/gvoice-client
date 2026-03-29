@@ -1,11 +1,12 @@
-import { Component, inject, signal, HostListener, Output, EventEmitter, Input, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, HostListener, Output, EventEmitter, Input, ViewChild, ElementRef, AfterViewInit, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SettingsService } from '../../core/services/settings.service';
 import { AudioProcessorService } from '../../core/services/audio-processor.service';
 import { SignalRService } from '../../core/services/signalr.service';
+import { WebRtcService } from '../../core/services/webrtc.service';
 import { ThemeService, THEMES } from '../../core/services/theme.service';
 
-type Tab = 'theme' | 'audio' | 'controls';
+type Tab = 'theme' | 'audio' | 'controls' | 'devices';
 
 @Component({
   selector: 'app-settings',
@@ -37,9 +38,15 @@ type Tab = 'theme' | 'audio' | 'controls';
             </svg>
             Audio
           </button>
-          <button class="tab" *ngIf="!hideControls" [class.active]="activeTab() === 'controls'" (click)="activeTab.set('controls')">
+          <button *ngIf="isDesktop && !hideControls" class="tab" [class.active]="activeTab() === 'devices'" (click)="activeTab.set('devices')">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+            Devices
+          </button>
+          <button class="tab" *ngIf="!hideControls" [class.active]="activeTab() === 'controls'" (click)="activeTab.set('controls')">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
             Controls
           </button>
@@ -145,6 +152,43 @@ type Tab = 'theme' | 'audio' | 'controls';
                   <span class="toggle-thumb" [class.on]="enableAudioEnhancements()"></span>
                 </button>
               </div>
+            </div>
+          </div>
+
+          <!-- ── DEVICES TAB ── -->
+          <div *ngIf="activeTab() === 'devices'">
+            <div class="setting-item">
+              <label>Input Device (Microphone)</label>
+              <select class="device-select" (change)="onInputDeviceChange($event)">
+                <option *ngFor="let device of inputDevices()" 
+                        [value]="device.deviceId" 
+                        [selected]="device.deviceId === inputDeviceId()">
+                  {{ device.label || 'Microphone ' + device.deviceId.slice(0, 5) }}
+                </option>
+              </select>
+              <p class="instruction">Selected: {{ inputDeviceLabel() }}</p>
+            </div>
+
+            <div class="setting-item">
+              <label>Output Device (Speakers/Headphones)</label>
+              <ng-container *ngIf="isSetSinkIdSupported; else notSupported">
+                <select class="device-select" (change)="onOutputDeviceChange($event)">
+                  <option *ngFor="let device of outputDevices()" 
+                          [value]="device.deviceId" 
+                          [selected]="device.deviceId === outputDeviceId()">
+                    {{ device.label || 'Speaker ' + device.deviceId.slice(0, 5) }}
+                  </option>
+                </select>
+                <p class="instruction">Selected: {{ outputDeviceLabel() }}</p>
+              </ng-container>
+              <ng-template #notSupported>
+                <div class="unsupported-banner">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  <span>Output selection is not supported in this browser.</span>
+                </div>
+              </ng-template>
             </div>
           </div>
 
@@ -563,6 +607,39 @@ type Tab = 'theme' | 'audio' | 'controls';
       text-align: center;
     }
 
+    /* ── Devices ── */
+    .device-select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-family);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .device-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-subtle);
+    }
+    .unsupported-banner {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.875rem 1rem;
+      background: color-mix(in srgb, var(--error-500) 8%, var(--bg-surface));
+      border: 1.5px solid color-mix(in srgb, var(--error-500) 25%, transparent);
+      border-radius: 12px;
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      line-height: 1.4;
+    }
+    .unsupported-banner svg { color: var(--error-500); flex-shrink: 0; }
+
     /* ── Info ── */
     .setting-info {
       display: flex;
@@ -635,10 +712,11 @@ type Tab = 'theme' | 'audio' | 'controls';
     }
   `]
 })
-export class SettingsComponent implements AfterViewInit, OnDestroy {
+export class SettingsComponent implements AfterViewInit, OnDestroy, OnInit {
   private settingsService = inject(SettingsService);
   private audioProcessor = inject(AudioProcessorService);
   private signalrService = inject(SignalRService);
+  private webrtcService = inject(WebRtcService);
   themeService = inject(ThemeService);
 
   themes = THEMES;
@@ -661,14 +739,47 @@ export class SettingsComponent implements AfterViewInit, OnDestroy {
   noiseGateThreshold = this.settingsService.noiseGateThreshold;
   isRecording = signal(false);
 
+  inputDevices = signal<MediaDeviceInfo[]>([]);
+  outputDevices = signal<MediaDeviceInfo[]>([]);
+  isSetSinkIdSupported = false;
+  isDesktop = false;
+
+  inputDeviceId = this.settingsService.inputDeviceId;
+  inputDeviceLabel = this.settingsService.inputDeviceLabel;
+  outputDeviceId = this.settingsService.outputDeviceId;
+  outputDeviceLabel = this.settingsService.outputDeviceLabel;
+
   // Must match the max attribute on the range input.
-  // Both the signal bar and the threshold line are divided by this value
-  // so they share the same coordinate space and never go out of bounds.
   private readonly METER_MAX = 0.3;
 
   private animationId: number | null = null;
   private analyser: AnalyserNode | null = null;
   private dataArray: Uint8Array<ArrayBuffer> | null = null;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      this.isSetSinkIdSupported = 'setSinkId' in AudioContext.prototype || 'setSinkId' in HTMLAudioElement.prototype;
+      this.isDesktop = window.innerWidth >= 1024;
+      
+      navigator.mediaDevices.addEventListener('devicechange', () => this.enumerateDevices());
+    }
+  }
+
+  async ngOnInit() {
+    if (this.isDesktop) {
+      await this.enumerateDevices();
+    }
+  }
+
+  async enumerateDevices() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      this.inputDevices.set(devices.filter(d => d.kind === 'audioinput'));
+      this.outputDevices.set(devices.filter(d => d.kind === 'audiooutput'));
+    } catch (err) {
+      console.error('Failed to enumerate devices:', err);
+    }
+  }
 
   ngAfterViewInit() {
     setTimeout(() => this.startLevelMeter());
@@ -723,19 +834,13 @@ export class SettingsComponent implements AfterViewInit, OnDestroy {
       ctx.fillStyle = bgMuted;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Signal bar — normalised against METER_MAX so it fills the canvas exactly
-      // when the signal equals the slider's maximum value, and never overflows.
       const barWidth = Math.min(canvas.width * (rms / this.METER_MAX), canvas.width);
       ctx.fillStyle = accent;
       ctx.fillRect(0, 0, barWidth, canvas.height);
 
-      // Threshold line — uses the same METER_MAX divisor as the bar, so the line
-      // always tracks the slider position and stays within the canvas bounds.
-      // At threshold = 0   → line at left edge  (0 % of canvas)
-      // At threshold = 0.3 → line at right edge (100% of canvas, clamped to -1px)
       const thresholdPos = Math.min(
         canvas.width * (this.noiseGateThreshold() / this.METER_MAX),
-        canvas.width - 1  // keep 1 px visible when slider is at maximum
+        canvas.width - 1
       );
       ctx.strokeStyle = error;
       ctx.lineWidth = 2;
@@ -765,6 +870,23 @@ export class SettingsComponent implements AfterViewInit, OnDestroy {
       enableAudioEnhancements: this.enableAudioEnhancements(),
       noiseGateThreshold: this.noiseGateThreshold()
     });
+  }
+
+  async onInputDeviceChange(event: any) {
+    const id = event.target.value;
+    const label = this.inputDevices().find(d => d.deviceId === id)?.label || 'Unknown';
+    this.settingsService.saveInputDevice(id, label);
+    
+    // Trigger re-init of local stream if we are already in a room
+    await this.webrtcService.getLocalStream(true);
+  }
+
+  async onOutputDeviceChange(event: any) {
+    const id = event.target.value;
+    const label = this.outputDevices().find(d => d.deviceId === id)?.label || 'Unknown';
+    this.settingsService.saveOutputDevice(id, label);
+    
+    await this.webrtcService.updateOutputDevice(id);
   }
 
   startRecording() { this.isRecording.set(true); }

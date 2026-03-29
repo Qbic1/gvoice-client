@@ -11,6 +11,10 @@ export class SettingsService {
   private readonly PTT_KEY_STORAGE = 'gvoice_ptt_key';
   private readonly AUDIO_ENHANCEMENTS_STORAGE = 'gvoice_audio_enhancements';
   private readonly NOISE_GATE_STORAGE = 'gvoice_noise_gate_threshold';
+  private readonly INPUT_DEVICE_ID_STORAGE = 'gvoice_input_device_id';
+  private readonly INPUT_DEVICE_LABEL_STORAGE = 'gvoice_input_device_label';
+  private readonly OUTPUT_DEVICE_ID_STORAGE = 'gvoice_output_device_id';
+  private readonly OUTPUT_DEVICE_LABEL_STORAGE = 'gvoice_output_device_label';
 
   private readonly DEFAULT_PTT_KEY = 'Space';
   private readonly DEFAULT_AUDIO_ENHANCEMENTS = true;
@@ -19,6 +23,11 @@ export class SettingsService {
   pttKey = signal<string>(this.DEFAULT_PTT_KEY);
   enableAudioEnhancements = signal<boolean>(this.DEFAULT_AUDIO_ENHANCEMENTS);
   noiseGateThreshold = signal<number>(this.DEFAULT_NOISE_GATE);
+
+  inputDeviceId = signal<string>('default');
+  inputDeviceLabel = signal<string>('Default');
+  outputDeviceId = signal<string>('default');
+  outputDeviceLabel = signal<string>('Default');
 
   constructor() {
     if (this.isBrowser) {
@@ -36,6 +45,18 @@ export class SettingsService {
       if (savedNoiseGate !== null) {
         this.noiseGateThreshold.set(parseFloat(savedNoiseGate));
       }
+
+      const savedInputId = localStorage.getItem(this.INPUT_DEVICE_ID_STORAGE);
+      if (savedInputId) this.inputDeviceId.set(savedInputId);
+
+      const savedInputLabel = localStorage.getItem(this.INPUT_DEVICE_LABEL_STORAGE);
+      if (savedInputLabel) this.inputDeviceLabel.set(savedInputLabel);
+
+      const savedOutputId = localStorage.getItem(this.OUTPUT_DEVICE_ID_STORAGE);
+      if (savedOutputId) this.outputDeviceId.set(savedOutputId);
+
+      const savedOutputLabel = localStorage.getItem(this.OUTPUT_DEVICE_LABEL_STORAGE);
+      if (savedOutputLabel) this.outputDeviceLabel.set(savedOutputLabel);
     }
   }
 
@@ -43,6 +64,24 @@ export class SettingsService {
     this.pttKey.set(key);
     if (this.isBrowser) {
       localStorage.setItem(this.PTT_KEY_STORAGE, key);
+    }
+  }
+
+  saveInputDevice(id: string, label: string) {
+    this.inputDeviceId.set(id);
+    this.inputDeviceLabel.set(label);
+    if (this.isBrowser) {
+      localStorage.setItem(this.INPUT_DEVICE_ID_STORAGE, id);
+      localStorage.setItem(this.INPUT_DEVICE_LABEL_STORAGE, label);
+    }
+  }
+
+  saveOutputDevice(id: string, label: string) {
+    this.outputDeviceId.set(id);
+    this.outputDeviceLabel.set(label);
+    if (this.isBrowser) {
+      localStorage.setItem(this.OUTPUT_DEVICE_ID_STORAGE, id);
+      localStorage.setItem(this.OUTPUT_DEVICE_LABEL_STORAGE, label);
     }
   }
 
@@ -59,5 +98,7 @@ export class SettingsService {
   resetToDefault() {
     this.savePttKey(this.DEFAULT_PTT_KEY);
     this.updateAudioSettings(this.DEFAULT_AUDIO_ENHANCEMENTS, this.DEFAULT_NOISE_GATE);
+    this.saveInputDevice('default', 'Default');
+    this.saveOutputDevice('default', 'Default');
   }
 }
