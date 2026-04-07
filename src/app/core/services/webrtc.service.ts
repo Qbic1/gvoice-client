@@ -112,54 +112,65 @@ export class WebRtcService {
     const ctx = this.audioContext;
   }
 
+  private getLocalStreamPromise: Promise<MediaStream | null> | null = null;
+
   async getLocalStream(forceReinit = false): Promise<MediaStream | null> {
     if (!this.isBrowser) return null;
     
     if (this.localStream && !forceReinit) return this.localStream;
+    if (this.getLocalStreamPromise && !forceReinit) return this.getLocalStreamPromise;
 
     if (forceReinit && this.localStream) {
       this.localStream.getTracks().forEach(t => t.stop());
       this.localStream = null;
     }
 
-    this.initAudioContext();
-    try {
-      const inputId = this.settingsService.inputDeviceId();
-      const audioConstraints: any = {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: false, // let our compressor handle this
-        sampleRate: 48000,
-        channelCount: 1,        // mono — halves worklet processing load
-      };
+    this.getLocalStreamPromise = (async () => {
+      this.initAudioContext();
+      try {
+        const inputId = this.settingsService.inputDeviceId();
+        const audioConstraints: any = {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: false, // let our compressor handle this
+          sampleRate: 48000,
+          channelCount: 1,        // mono — halves worklet processing load
+        };
 
-      if (inputId && inputId !== 'default') {
-        audioConstraints.deviceId = { exact: inputId };
+        if (inputId && inputId !== 'default') {
+          audioConstraints.deviceId = { exact: inputId };
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: audioConstraints,
+          video: false
+        });
+
+        this.localStream = stream;
+
+        // Load worklet AFTER getUserMedia so AudioContext is guaranteed not suspended
+        await this.audioProcessorService.ensureWorkletLoaded();
+
+        this.localProcessedStream = this.audioProcessorService.processLocalStream(this.localStream);
+
+        this.localStream$.next(this.localStream);
+
+        if (this.isPttMode()) {
+          this.setMicEnabled(false);
+        } else {
+          this.isMuted.set(!this.localStream.getAudioTracks()[0].enabled);
+        }
+
+        return this.localStream;
+      } catch (err) {
+        console.error('Error getting local stream:', err);
+        return null;
+      } finally {
+        this.getLocalStreamPromise = null;
       }
+    })();
 
-      this.localStream = await navigator.mediaDevices.getUserMedia({
-        audio: audioConstraints,
-        video: false
-      });
-
-      // Load worklet AFTER getUserMedia so AudioContext is guaranteed not suspended
-      await this.audioProcessorService.ensureWorkletLoaded();
-
-      this.localProcessedStream = this.audioProcessorService.processLocalStream(this.localStream);
-
-      this.localStream$.next(this.localStream);
-
-      if (this.isPttMode()) {
-        this.setMicEnabled(false);
-      } else {
-        this.isMuted.set(!this.localStream.getAudioTracks()[0].enabled);
-      }
-
-      return this.localStream;
-    } catch (err) {
-      console.error('Error getting local stream:', err);
-      return null;
-    }
+    return this.getLocalStreamPromise;
   }
 
   async updateOutputDevice(deviceId: string) {
@@ -302,6 +313,20 @@ export class WebRtcService {
       if (event.candidate) {
         this.signalrService.sendSignal(connectionId, JSON.stringify({ ice: event.candidate }));
       }
+    };
+
+    pc.onconnectionstatechange = () => {
+      console.log(`[WebRTC] Connection state with ${connectionId}: ${pc.connectionState}`);
+      if (pc.connectionState === 'failed') {
+        console.warn(`[WebRTC] Connection failed with ${connectionId}, attempting to restart ICE...`);
+        pc.restartIce();
+      }
+      this.updateDebugInfo();
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      console.log(`[WebRTC] ICE state with ${connectionId}: ${pc.iceConnectionState}`);
+      this.updateDebugInfo();
     };
 
     pc.onnegotiationneeded = async () => {
@@ -526,6 +551,7 @@ export class WebRtcService {
       if (audio) {
         audio.pause();
         audio.srcObject = null;
+        audio.remove();
         this.audioElements.delete(connectionId);
       }
 
@@ -618,5 +644,22 @@ export class WebRtcService {
         });
       }
     }
+    this.updateDebugInfo();
+  }
+
+  private updateDebugInfo() {
+    if (!this.isBrowser) return;
+    const info: any = {
+      localStream: !!this.localStream,
+      peerConnections: {}
+    };
+    this.peerConnections.forEach((pc, id) => {
+      info.peerConnections[id] = {
+        connectionState: pc.connectionState,
+        iceConnectionState: pc.iceConnectionState,
+        signalingState: pc.signalingState
+      };
+    });
+    (window as any).gvWebRtcDebug = info;
   }
 }

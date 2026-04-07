@@ -46,6 +46,7 @@ import { DomSanitizer } from '@angular/platform-browser';
           />
           <div *ngIf="roomNotFoundError" class="field-error">The requested room does not exist.</div>
           <div *ngIf="passwordError" class="field-error">Incorrect room password.</div>
+          <div *ngIf="roomFullError" class="field-error">The room is currently full (max 10 users).</div>
 
           <label class="listen-only-label">
             <input type="checkbox" [(ngModel)]="isListenOnly" name="isListenOnly" [disabled]="isConnecting" />
@@ -227,6 +228,7 @@ export class JoinRoomComponent implements OnInit, OnDestroy {
   roomPassword = '';
   passwordError = false;
   roomNotFoundError = false;
+  roomFullError = false;
   isListenOnly = false;
   isConnecting = false;
 
@@ -243,6 +245,11 @@ export class JoinRoomComponent implements OnInit, OnDestroy {
 
     this.subscriptions.add(this.signalrService.roomNotFound$.subscribe(() => {
       this.roomNotFoundError = true;
+      reset();
+    }));
+
+    this.subscriptions.add(this.signalrService.roomFull$.subscribe(() => {
+      this.roomFullError = true;
       reset();
     }));
 
