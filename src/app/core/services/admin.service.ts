@@ -20,8 +20,18 @@ export class AdminService {
 
   constructor() {
     if (this.isBrowser) {
-      this.isAdmin.set(localStorage.getItem(this.ADMIN_KEY) === 'true');
-      this.currentPassword = sessionStorage.getItem(this.PWD_KEY);
+      // Never trust the client-side flag (anyone can set gv_is_admin=true in
+      // DevTools). Re-verify the remembered password against the server; only
+      // then grant the admin UI. Clear any stale flag if there's no password
+      // or verification fails.
+      const storedPassword = sessionStorage.getItem(this.PWD_KEY);
+      if (storedPassword) {
+        this.verifyAdmin(storedPassword).then(ok => {
+          if (!ok) this.logout();
+        });
+      } else {
+        this.logout();
+      }
     }
   }
 

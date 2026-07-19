@@ -32,9 +32,15 @@ export class SignalRService {
   public roomCreated$ = new Subject<{ id: string, name: string }>();
   public receiveChatMessage$ = new Subject<{ displayName: string, message: string, timestamp: string }>();
   public receiveChatHistory$ = new ReplaySubject<{ displayName: string, message: string, timestamp: string }[]>(1);
+  // Emitted after an automatic reconnect completes so consumers (WebRTC) can
+  // rebuild peer state under the new connection id.
+  public reconnected$ = new Subject<void>();
 
   connectionStatus = signal<'Disconnected' | 'Connecting' | 'Connected' | 'Error'>('Disconnected');
   connectionId = signal<string | null>(null);
+
+  // Parameters of the last Join, replayed automatically after a reconnect.
+  private lastJoin: { roomId: string, roomPassword: string, displayName: string, isListenOnly: boolean } | null = null;
 
   private participantCache = new Map<string, { names: string[], timestamp: number }>();
   private CACHE_DURATION = 10000; // 10 seconds
@@ -93,6 +99,24 @@ export class SignalRService {
        this.hubConnection['_connection'].maxReceiveMessageSize = 10 * 1024 * 1024;
     }
 
+    this.hubConnection.onreconnecting((error) => {
+      console.warn('SignalR reconnecting:', error);
+      this.connectionStatus.set('Connecting');
+    });
+
+    this.hubConnection.onreconnected((connectionId) => {
+      console.log('SignalR reconnected with id:', connectionId);
+      this.connectionId.set(connectionId ?? this.hubConnection?.connectionId ?? null);
+      // Rebuild WebRTC mesh, then re-join the room so the server re-registers us
+      // under the new connection id (otherwise we stay muted/invisible).
+      this.reconnected$.next();
+      if (this.lastJoin) {
+        this.hubConnection
+          ?.invoke('Join', this.lastJoin.roomId, this.lastJoin.roomPassword, this.lastJoin.displayName, this.lastJoin.isListenOnly)
+          .catch(err => console.error('Re-join after reconnect failed:', err));
+      }
+    });
+
     this.hubConnection.onclose((error) => {
       console.error('SignalR connection closed:', error);
       this.connectionStatus.set('Error');
@@ -126,6 +150,7 @@ export class SignalRService {
   }
 
   disconnect() {
+    this.lastJoin = null;
     this.hubConnection?.stop();
     this.connectionStatus.set('Disconnected');
     this.connectionId.set(null);
@@ -135,6 +160,8 @@ export class SignalRService {
 
   async joinRoom(roomId: string, roomPassword: string, displayName: string, isListenOnly: boolean = false) {
     if (this.hubConnection?.state === signalR.HubConnectionState.Connected) {
+      // Remember params so we can replay Join automatically after a reconnect.
+      this.lastJoin = { roomId, roomPassword, displayName, isListenOnly };
       await this.hubConnection.invoke('Join', roomId, roomPassword, displayName, isListenOnly);
     } else {
       console.error('Cannot join room: SignalR is not connected.');
@@ -162,12 +189,6 @@ export class SignalRService {
   async updateState(stateType: 'muted' | 'deafened' | 'sharingScreen', value: boolean) {
     if (this.hubConnection?.state === signalR.HubConnectionState.Connected) {
       await this.hubConnection.invoke('UpdateState', stateType, value);
-    }
-  }
-
-  async updateAudioSettings(settings: { enableAudioEnhancements: boolean, noiseGateThreshold: number }) {
-    if (this.hubConnection?.state === signalR.HubConnectionState.Connected) {
-      await this.hubConnection.invoke('UpdateAudioSettings', settings);
     }
   }
 }

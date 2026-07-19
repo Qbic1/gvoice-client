@@ -2,7 +2,6 @@ import { Component, inject, signal, HostListener, Output, EventEmitter, Input, V
 import { CommonModule } from '@angular/common';
 import { SettingsService } from '../../core/services/settings.service';
 import { AudioProcessorService } from '../../core/services/audio-processor.service';
-import { SignalRService } from '../../core/services/signalr.service';
 import { WebRtcService } from '../../core/services/webrtc.service';
 import { ThemeService, THEMES } from '../../core/services/theme.service';
 
@@ -715,7 +714,6 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
 export class SettingsComponent implements AfterViewInit, OnDestroy, OnInit {
   private settingsService = inject(SettingsService);
   private audioProcessor = inject(AudioProcessorService);
-  private signalrService = inject(SignalRService);
   private webrtcService = inject(WebRtcService);
   themeService = inject(ThemeService);
 
@@ -756,12 +754,16 @@ export class SettingsComponent implements AfterViewInit, OnDestroy, OnInit {
   private analyser: AnalyserNode | null = null;
   private dataArray: Uint8Array<ArrayBuffer> | null = null;
 
+  private isDestroyed = false;
+  private levelMeterTimeout: ReturnType<typeof setTimeout> | null = null;
+  private readonly onDeviceChange = () => this.enumerateDevices();
+
   constructor() {
     if (typeof window !== 'undefined') {
       this.isSetSinkIdSupported = 'setSinkId' in AudioContext.prototype || 'setSinkId' in HTMLAudioElement.prototype;
       this.isDesktop = window.innerWidth >= 1024;
-      
-      navigator.mediaDevices.addEventListener('devicechange', () => this.enumerateDevices());
+
+      navigator.mediaDevices?.addEventListener('devicechange', this.onDeviceChange);
     }
   }
 
@@ -782,24 +784,29 @@ export class SettingsComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   ngAfterViewInit() {
-    setTimeout(() => this.startLevelMeter());
+    this.levelMeterTimeout = setTimeout(() => this.startLevelMeter());
   }
 
   ngOnDestroy() {
+    this.isDestroyed = true;
     if (this.animationId) cancelAnimationFrame(this.animationId);
+    if (this.levelMeterTimeout) clearTimeout(this.levelMeterTimeout);
+    if (typeof navigator !== 'undefined') {
+      navigator.mediaDevices?.removeEventListener('devicechange', this.onDeviceChange);
+    }
   }
 
   switchToAudio() {
     this.activeTab.set('audio');
-    setTimeout(() => this.startLevelMeter());
+    this.levelMeterTimeout = setTimeout(() => this.startLevelMeter());
   }
 
   startLevelMeter() {
-    if (!this.canvasRef?.nativeElement) return;
+    if (this.isDestroyed || !this.canvasRef?.nativeElement) return;
 
     this.analyser = this.audioProcessor.getLocalAnalyser();
     if (!this.analyser) {
-      setTimeout(() => this.startLevelMeter(), 500);
+      this.levelMeterTimeout = setTimeout(() => this.startLevelMeter(), 500);
       return;
     }
     if (this.animationId) {
@@ -814,6 +821,7 @@ export class SettingsComponent implements AfterViewInit, OnDestroy, OnInit {
     if (!ctx) return;
 
     const draw = () => {
+      if (this.isDestroyed) return;
       this.animationId = requestAnimationFrame(draw);
       if (!this.analyser || !this.dataArray || !this.canvasRef?.nativeElement) return;
 
@@ -856,20 +864,11 @@ export class SettingsComponent implements AfterViewInit, OnDestroy, OnInit {
   updateThreshold(event: any) {
     const val = parseFloat(event.target.value);
     this.settingsService.updateAudioSettings(this.enableAudioEnhancements(), val);
-    this.syncSettings();
   }
 
   toggleEnhancements() {
     const newVal = !this.enableAudioEnhancements();
     this.settingsService.updateAudioSettings(newVal, this.noiseGateThreshold());
-    this.syncSettings();
-  }
-
-  private syncSettings() {
-    this.signalrService.updateAudioSettings({
-      enableAudioEnhancements: this.enableAudioEnhancements(),
-      noiseGateThreshold: this.noiseGateThreshold()
-    });
   }
 
   async onInputDeviceChange(event: any) {
@@ -902,6 +901,6 @@ export class SettingsComponent implements AfterViewInit, OnDestroy, OnInit {
     }
   }
 
-  reset() { this.settingsService.resetToDefault(); this.syncSettings(); }
+  reset() { this.settingsService.resetToDefault(); }
   close() { this.onClose.emit(); }
 }

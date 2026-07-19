@@ -1,17 +1,19 @@
-import { Injectable, signal, effect, inject, HostListener } from '@angular/core';
+import { Injectable, signal, effect, inject, OnDestroy } from '@angular/core';
 import { WebRtcService } from './webrtc.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class LayoutService {
+export class LayoutService implements OnDestroy {
   private webrtcService = inject(WebRtcService);
-  
+
   isMobile = signal(false);
+
+  private readonly onResize = () => this.checkWidth();
 
   constructor() {
     this.checkWidth();
-    
+
     // Reactive layout update when stream state changes
     effect(() => {
       this.webrtcService.currentStreamToWatch();
@@ -19,7 +21,13 @@ export class LayoutService {
     });
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('resize', () => this.checkWidth());
+      window.addEventListener('resize', this.onResize);
+    }
+  }
+
+  ngOnDestroy() {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('resize', this.onResize);
     }
   }
 

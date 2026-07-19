@@ -31,6 +31,12 @@ export class WebRtcService {
   }
   private participantGainNodes = new Map<string, GainNode>();
   private participantSourceNodes = new Map<string, MediaStreamAudioSourceNode>();
+  // VAD nodes are stored separately from playback source nodes: they share the
+  // same connectionId key, so keeping them in one map made the VAD source
+  // overwrite the playback source (leaking the latter on cleanup). The worklet
+  // node is retained here too, otherwise it may be garbage-collected and VAD
+  // events silently stop for that peer.
+  private participantVadNodes = new Map<string, { source: MediaStreamAudioSourceNode, node: AudioWorkletNode }>();
   private audioElements = new Map<string, HTMLAudioElement>();
 
   public localStream$ = new ReplaySubject<MediaStream>(1);
@@ -77,6 +83,13 @@ export class WebRtcService {
       this.closePeerConnection(peer.connectionId);
     });
 
+    // After a SignalR auto-reconnect, connection ids change: drop stale peer
+    // connections but keep the mic running. Fresh peers arrive via the
+    // RoomJoined/PeerJoined events that follow the automatic re-Join.
+    this.signalrService.reconnected$.subscribe(() => {
+      this.closeAllPeerConnections();
+    });
+
     this.signalrService.peerStateUpdated$.subscribe((data) => {
       if (data.stateType === 'sharingScreen') {
         if (data.value) {
@@ -116,11 +129,19 @@ export class WebRtcService {
 
   async getLocalStream(forceReinit = false): Promise<MediaStream | null> {
     if (!this.isBrowser) return null;
-    
-    if (this.localStream && !forceReinit) return this.localStream;
-    if (this.getLocalStreamPromise && !forceReinit) return this.getLocalStreamPromise;
 
-    if (forceReinit && this.localStream) {
+    // Detect a dead stream: after OS hibernation/sleep the microphone track is
+    // released and its readyState becomes 'ended'. Such a track can never be
+    // revived — we MUST re-acquire via getUserMedia, otherwise the mic stays
+    // silent until a full page reload. Treat this the same as forceReinit.
+    const existingTrack = this.localStream?.getAudioTracks()[0];
+    const streamIsDead = !!this.localStream && (!existingTrack || existingTrack.readyState === 'ended');
+    const mustReinit = forceReinit || streamIsDead;
+
+    if (this.localStream && !mustReinit) return this.localStream;
+    if (this.getLocalStreamPromise && !mustReinit) return this.getLocalStreamPromise;
+
+    if (mustReinit && this.localStream) {
       this.localStream.getTracks().forEach(t => t.stop());
       this.localStream = null;
     }
@@ -148,6 +169,15 @@ export class WebRtcService {
 
         this.localStream = stream;
 
+        // Recover automatically if the mic track dies (device unplug, OS sleep).
+        const track = stream.getAudioTracks()[0];
+        if (track) {
+          track.onended = () => {
+            console.warn('[WebRTC] Local mic track ended — re-acquiring stream');
+            this.reacquireLocalStream();
+          };
+        }
+
         // Load worklet AFTER getUserMedia so AudioContext is guaranteed not suspended
         await this.audioProcessorService.ensureWorkletLoaded();
 
@@ -171,6 +201,55 @@ export class WebRtcService {
     })();
 
     return this.getLocalStreamPromise;
+  }
+
+  /**
+   * Re-acquire the microphone after the current track died (OS sleep, device
+   * change) and push the fresh track into every live peer connection so the
+   * user becomes audible again without a page reload.
+   */
+  private async reacquireLocalStream() {
+    const stream = await this.getLocalStream(true);
+    if (!stream) return;
+
+    const newTrack = (this.localProcessedStream ?? stream).getAudioTracks()[0];
+    if (newTrack) {
+      this.replaceTracksInAllPeerConnections(this.localProcessedStream ?? stream);
+    }
+  }
+
+  /**
+   * Close every peer connection and reset per-peer negotiation state, WITHOUT
+   * touching the local microphone stream. Used both on full leave and on
+   * SignalR reconnect (where the mic must keep running).
+   */
+  private closeAllPeerConnections() {
+    Array.from(this.peerConnections.keys()).forEach(id => this.closePeerConnection(id));
+    this.peerConnections.clear();
+    this.pendingConnections.clear();
+    this.makingOffer.clear();
+    this.ignoreOffer.clear();
+    this.iceCandidatesQueue.clear();
+  }
+
+  /**
+   * Tear down all WebRTC state when leaving a room. Stops the microphone,
+   * closes peer connections and releases audio nodes — mirrors what a full
+   * page reload does, so a subsequent rejoin starts from a clean slate.
+   */
+  cleanup() {
+    this.closeAllPeerConnections();
+
+    if (this.isSharingScreen()) {
+      this.stopScreenShare();
+    }
+
+    if (this.localStream) {
+      this.localStream.getTracks().forEach(t => t.stop());
+      this.localStream = null;
+    }
+    this.localProcessedStream = null;
+    this.audioProcessorService.cleanupLocal();
   }
 
   async updateOutputDevice(deviceId: string) {
@@ -541,6 +620,18 @@ export class WebRtcService {
         this.participantSourceNodes.delete(connectionId);
       }
 
+      const vad = this.participantVadNodes.get(connectionId);
+      if (vad) {
+        try {
+          vad.source.disconnect();
+          vad.node.disconnect();
+          vad.node.port.onmessage = null;
+        } catch (err) {
+          console.warn('Error disconnecting VAD nodes for peer:', connectionId, err);
+        }
+        this.participantVadNodes.delete(connectionId);
+      }
+
       const gain = this.participantGainNodes.get(connectionId);
       if (gain) {
         gain.disconnect();
@@ -573,8 +664,9 @@ export class WebRtcService {
         this.participantService.updateSpeakingStatus(connectionId, speaking);
       };
 
-      // store to prevent GC
-      this.participantSourceNodes.set(connectionId, source);
+      // store both to prevent GC and to keep the playback source (in
+      // participantSourceNodes) intact for proper cleanup
+      this.participantVadNodes.set(connectionId, { source, node: vadNode });
 
     } catch (err) {
       console.error('VAD worklet failed:', err);

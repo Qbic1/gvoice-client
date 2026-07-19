@@ -1,5 +1,5 @@
-import { Injectable, signal, inject } from '@angular/core';
-import { DOCUMENT } from '@angular/common';
+import { Injectable, signal, inject, PLATFORM_ID } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 
 export type ThemeId =
   | 'purple'
@@ -77,6 +77,7 @@ const STORAGE_KEY = 'gvoice-theme';
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private readonly doc = inject(DOCUMENT);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   private readonly _theme = signal<ThemeId>(this.init());
   readonly theme = this._theme.asReadonly();
@@ -84,14 +85,21 @@ export class ThemeService {
   setTheme(id: ThemeId): void {
     this._theme.set(id);
     this.doc.documentElement.setAttribute('data-theme', id);
-    localStorage.setItem(STORAGE_KEY, id);
+    // localStorage is browser-only; guard so SSR/prerender never throws.
+    if (this.isBrowser) {
+      localStorage.setItem(STORAGE_KEY, id);
+    }
   }
 
   init(): ThemeId {
-    const saved = localStorage.getItem(STORAGE_KEY) as ThemeId | null;
     const valid = THEMES.map(t => t.id);
+    // On the server there is no localStorage — fall back to the default theme.
+    const saved = this.isBrowser
+      ? (localStorage.getItem(STORAGE_KEY) as ThemeId | null)
+      : null;
     const id: ThemeId =
       saved && valid.includes(saved as ThemeId) ? (saved as ThemeId) : 'purple';
+    // Setting the attribute is safe on the server (DOCUMENT is provided by SSR).
     this.doc.documentElement.setAttribute('data-theme', id);
     return id;
   }

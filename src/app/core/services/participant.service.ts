@@ -81,22 +81,33 @@ export class ParticipantService {
   }
 
   updateParticipantVolume(connectionId: string, volume: number) {
-    this.participants.update(list => {
-      return list.map(p => {
+    let displayName: string | null = null;
+
+    this.participants.update(list =>
+      list.map(p => {
         if (p.connectionId === connectionId) {
-          if (this.isBrowser) {
-            localStorage.setItem(`${this.VOLUME_PREFIX}${p.displayName}`, volume.toString());
-          }
+          displayName = p.displayName;
           return { ...p, volume };
         }
         return p;
-      });
-    });
+      })
+    );
+
+    // Persist outside the signal updater — updaters must stay pure/side-effect-free.
+    if (this.isBrowser && displayName !== null) {
+      try {
+        localStorage.setItem(`${this.VOLUME_PREFIX}${displayName}`, volume.toString());
+      } catch (err) {
+        console.warn('Failed to persist participant volume:', err);
+      }
+    }
   }
 
   private getStoredVolume(displayName: string): number {
     if (!this.isBrowser) return 100;
     const stored = localStorage.getItem(`${this.VOLUME_PREFIX}${displayName}`);
-    return stored ? parseInt(stored, 10) : 100;
+    if (!stored) return 100;
+    const parsed = parseInt(stored, 10);
+    return Number.isNaN(parsed) ? 100 : parsed;
   }
 }

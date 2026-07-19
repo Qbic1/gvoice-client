@@ -18,7 +18,7 @@ import { Subscription } from 'rxjs';
   standalone: true,
   imports: [CommonModule, JoinRoomComponent, SettingsComponent, DesktopLayoutComponent, MobileLayoutComponent],
   template: `
-    <main (keydown)="onKeyDown($event)" (keyup)="onKeyUp($event)" class="app-container">
+    <main class="app-container">
       <app-join-room *ngIf="connectionStatus() !== 'Connected'"></app-join-room>
 
       <div *ngIf="connectionStatus() === 'Connecting'" class="status-container">
@@ -169,23 +169,23 @@ export class App implements OnInit, OnDestroy {
     this.subscriptions.add(this.signalrService.peerLeft$.subscribe(() => {
       this.chimesService.playLeaveChime();
     }));
-
-    document.addEventListener('visibilitychange', () => {
-      const hidden = document.hidden;
-
-      if (hidden) {
-        document.body.classList.add('app-background');
-      } else {
-        document.body.classList.remove('app-background');
-      }
-    });
   }
 
   ngOnDestroy() {
     this.subscriptions.unsubscribe();
   }
 
+  @HostListener('document:visibilitychange')
+  onVisibilityChange() {
+    if (document.hidden) {
+      document.body.classList.add('app-background');
+    } else {
+      document.body.classList.remove('app-background');
+    }
+  }
+
   rejoin() {
+    this.webrtcService.cleanup();
     this.signalrService.disconnect();
     this.router.navigate(['/']);
   }
@@ -201,11 +201,22 @@ export class App implements OnInit, OnDestroy {
 
   @HostListener('window:keyup', ['$event'])
   onKeyUp(event: KeyboardEvent) {
-    if (this.shouldSuppress(event)) return;
+    // NOTE: releasing PTT must NOT be gated by shouldSuppress. If the user pressed
+    // the key, then focused an input (or the settings modal opened) before letting
+    // go, a suppressed keyup would leave the mic open. Always release on the PTT key.
     if (event.code === this.settingsService.pttKey()) {
       if (this.webrtcService.isPttMode()) event.preventDefault();
       this.webrtcService.setPttActive(false);
     }
+  }
+
+  // Safety net: if the window loses focus (Alt-Tab, click into another app/window,
+  // common inside the WebView2 shell) the keyup for a held PTT key is delivered to
+  // the other window and never reaches us — the mic would stay open and keep
+  // transmitting. Force-release PTT whenever we lose focus or the tab is hidden.
+  @HostListener('window:blur')
+  onWindowBlur() {
+    this.webrtcService.setPttActive(false);
   }
 
   private shouldSuppress(event: KeyboardEvent): boolean {

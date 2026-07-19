@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { SignalRService, RoomInfo } from '../../core/services/signalr.service';
 import { AdminService } from '../../core/services/admin.service';
 
@@ -826,7 +827,7 @@ import { AdminService } from '../../core/services/admin.service';
     }
   `]
 })
-export class LobbyComponent implements OnInit {
+export class LobbyComponent implements OnInit, OnDestroy {
   private signalrService = inject(SignalRService);
   public adminService = inject(AdminService);
   private router = inject(Router);
@@ -843,13 +844,17 @@ export class LobbyComponent implements OnInit {
   newRoomName = '';
   newRoomPassword = '';
 
+  private subscriptions = new Subscription();
+
   async ngOnInit() {
     this.rooms.set(await this.signalrService.fetchRooms());
     await this.signalrService.startConnection('lobby');
-    this.signalrService.roomCreated$.subscribe(async () => {
+    this.subscriptions.add(this.signalrService.roomCreated$.subscribe(async () => {
       this.rooms.set(await this.signalrService.fetchRooms());
-    });
+    }));
   }
+
+  ngOnDestroy() { this.subscriptions.unsubscribe(); }
 
   async toggleParticipants(event: Event, roomId: string) {
     event.stopPropagation();

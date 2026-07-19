@@ -21,7 +21,10 @@ class VADProcessor extends AudioWorkletProcessor {
     const rms = Math.sqrt(sum / channel.length);
 
     const SPEAK_THRESHOLD = 0.02;
-    const SILENCE_FRAMES = 20; // ~400ms at 128 frame blocks
+    // 150 blocks * 128 samples / 48000 Hz ≈ 400ms hangover. The previous value
+    // of 20 was only ~53ms, which made the speaking indicator flicker on the
+    // natural pauses between words.
+    const SILENCE_FRAMES = 150;
 
     if (rms > SPEAK_THRESHOLD) {
       this.silenceFrames = 0;

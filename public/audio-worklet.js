@@ -32,6 +32,10 @@ class NoiseGateProcessor extends AudioWorkletProcessor {
       for (let ch = 0; ch < numChannels; ch++) {
         if (input[ch] && output[ch]) output[ch].set(input[ch]);
       }
+      // Reset gate state so that re-enabling starts from a fully-open gate
+      // instead of a stale (often 0) gain that would clip the first ~tens of ms.
+      this.envelope = 0;
+      this.gateGain = 1;
       return true;
     }
 

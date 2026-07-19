@@ -113,7 +113,10 @@ export class AudioProcessorService {
       // FIX: Gate enabled/disabled is now controlled ONLY by the threshold value,
       // NOT by the enhancements toggle. Setting threshold to 0 disables the gate
       // (everything passes through). Any value > 0 enables it.
-      if (enabledParam) enabledParam.setTargetAtTime(threshold > 0 ? 1 : 0, ctx.currentTime, 0.1);
+      // Use setValueAtTime (a step), NOT setTargetAtTime: the worklet compares
+      // `enabled < 0.5`, so an exponential ramp would cross the 0.5 boundary
+      // hundreds of ms late and glitch on the bypass↔gate transition.
+      if (enabledParam) enabledParam.setValueAtTime(threshold > 0 ? 1 : 0, ctx.currentTime);
     }
   }
 

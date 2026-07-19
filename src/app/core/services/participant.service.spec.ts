@@ -1,123 +1,148 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
+import { ReplaySubject, Subject } from 'rxjs';
 import { ParticipantService } from './participant.service';
 import { SignalRService } from './signalr.service';
-import { signal } from '@angular/core';
-import { Subject } from 'rxjs';
 import { Participant } from '../models/participant.model';
 
-// Mock SignalRService
+// Minimal mock of SignalRService exposing only the streams/signals the
+// ParticipantService subscribes to in its constructor. Shapes MUST match the
+// real service (see signalr.service.ts) — a mismatch here is exactly the kind
+// of drift the previous version of this spec suffered from.
 class MockSignalRService {
-  roomJoined$ = new Subject<Participant[]>();
+  roomJoined$ = new ReplaySubject<{ name: string; participants: Participant[] }>(1);
   peerJoined$ = new Subject<Participant>();
-  peerLeft$ = new Subject<{ connectionId: string, displayName: string }>();
-  peerStateUpdated$ = new Subject<{ connectionId: string, stateType: string, value: boolean }>();
+  peerLeft$ = new Subject<{ connectionId: string; displayName: string }>();
+  peerStateUpdated$ = new Subject<{ connectionId: string; stateType: string; value: boolean }>();
   connectionId = signal<string | null>(null);
+}
+
+function makeParticipant(overrides: Partial<Participant> = {}): Participant {
+  return {
+    connectionId: '1',
+    displayName: 'Alice',
+    isMuted: false,
+    isDeafened: false,
+    isSharingScreen: false,
+    isListenOnly: false,
+    isSpeaking: false,
+    ...overrides,
+  };
 }
 
 describe('ParticipantService', () => {
   let service: ParticipantService;
-  let mockSignalrService: MockSignalRService;
+  let signalr: MockSignalRService;
 
   beforeEach(() => {
-    // Create a new instance of the mock service for each test
-    mockSignalrService = new MockSignalRService();
+    // jsdom provides localStorage; start from a clean slate so stored volumes
+    // from other tests don't leak in via getStoredVolume().
+    localStorage.clear();
+    signalr = new MockSignalRService();
 
-    // Manually instantiate the service with the mock
-    service = new ParticipantService(mockSignalrService as unknown as SignalRService);
+    TestBed.configureTestingModule({
+      providers: [
+        ParticipantService,
+        { provide: SignalRService, useValue: signalr },
+      ],
+    });
+
+    service = TestBed.inject(ParticipantService);
   });
 
-  it('should be created', () => {
+  it('is created and starts empty', () => {
     expect(service).toBeTruthy();
-  });
-
-  it('should initialize with an empty participant list', () => {
     expect(service.participants()).toEqual([]);
   });
 
-  it('should populate participants on roomJoined event', () => {
-    const existingParticipants: Participant[] = [
-      { connectionId: '1', displayName: 'Alice', isMuted: false, isDeafened: false, isSpeaking: false },
-      { connectionId: '2', displayName: 'Bob', isMuted: true, isDeafened: false, isSpeaking: false },
-    ];
-    mockSignalrService.roomJoined$.next(existingParticipants);
-    expect(service.participants()).toEqual(existingParticipants);
+  it('populates participants (with default volume) and room name on roomJoined', () => {
+    const alice = makeParticipant({ connectionId: '1', displayName: 'Alice' });
+    const bob = makeParticipant({ connectionId: '2', displayName: 'Bob', isMuted: true });
+
+    signalr.roomJoined$.next({ name: 'General', participants: [alice, bob] });
+
+    const list = service.participants();
+    expect(list).toHaveLength(2);
+    expect(list[0]).toMatchObject({ connectionId: '1', displayName: 'Alice', volume: 100 });
+    expect(list[1]).toMatchObject({ connectionId: '2', isMuted: true, volume: 100 });
+    expect(service.roomName()).toBe('General');
   });
 
-  it('should add a participant on peerJoined event', () => {
-    const newParticipant: Participant = { connectionId: '3', displayName: 'Charlie', isMuted: false, isDeafened: false, isSpeaking: false };
-    mockSignalrService.peerJoined$.next(newParticipant);
-    expect(service.participants()).toEqual([newParticipant]);
+  it('applies a stored volume from localStorage on roomJoined', () => {
+    localStorage.setItem('gv_vol_Alice', '42');
+    signalr.roomJoined$.next({ name: 'General', participants: [makeParticipant({ displayName: 'Alice' })] });
+
+    expect(service.participants()[0].volume).toBe(42);
   });
 
-  it('should remove a participant on peerLeft event', () => {
-    // First, add some participants
-    const initialParticipants: Participant[] = [
-      { connectionId: '1', displayName: 'Alice', isMuted: false, isDeafened: false, isSpeaking: false },
-      { connectionId: '2', displayName: 'Bob', isMuted: false, isDeafened: false, isSpeaking: false },
-    ];
-    service.participants.set(initialParticipants);
+  it('adds a participant on peerJoined', () => {
+    signalr.peerJoined$.next(makeParticipant({ connectionId: '3', displayName: 'Charlie' }));
 
-    // Act
-    mockSignalrService.peerLeft$.next({ connectionId: '1', displayName: 'Alice' });
+    expect(service.participants()).toHaveLength(1);
+    expect(service.participants()[0]).toMatchObject({ connectionId: '3', volume: 100 });
+  });
 
-    // Assert
-    expect(service.participants().length).toBe(1);
+  it('removes a participant on peerLeft', () => {
+    service.participants.set([
+      makeParticipant({ connectionId: '1' }),
+      makeParticipant({ connectionId: '2', displayName: 'Bob' }),
+    ]);
+
+    signalr.peerLeft$.next({ connectionId: '1', displayName: 'Alice' });
+
+    expect(service.participants()).toHaveLength(1);
     expect(service.participants()[0].connectionId).toBe('2');
   });
 
-  it("should update a participant's muted state on peerStateUpdated event", () => {
-    // First, add a participant
-    const participant: Participant = { connectionId: '1', displayName: 'Alice', isMuted: false, isDeafened: false, isSpeaking: false };
-    service.participants.set([participant]);
+  it('updates muted / deafened / sharingScreen on peerStateUpdated (case-insensitive)', () => {
+    service.participants.set([makeParticipant({ connectionId: '1' })]);
 
-    // Act
-    mockSignalrService.peerStateUpdated$.next({ connectionId: '1', stateType: 'muted', value: true });
-
-    // Assert
+    signalr.peerStateUpdated$.next({ connectionId: '1', stateType: 'muted', value: true });
     expect(service.participants()[0].isMuted).toBe(true);
+
+    signalr.peerStateUpdated$.next({ connectionId: '1', stateType: 'Deafened', value: true });
+    expect(service.participants()[0].isDeafened).toBe(true);
+
+    signalr.peerStateUpdated$.next({ connectionId: '1', stateType: 'sharingScreen', value: true });
+    expect(service.participants()[0].isSharingScreen).toBe(true);
   });
 
-  it("should update a participant's deafened state on peerStateUpdated event", () => {
-    const participant: Participant = { connectionId: '1', displayName: 'Alice', isMuted: false, isDeafened: false, isSpeaking: false };
-    service.participants.set([participant]);
-    
-    mockSignalrService.peerStateUpdated$.next({ connectionId: '1', stateType: 'deafened', value: true });
-    
-    expect(service.participants()[0].isDeafened).toBe(true);
-  });
-  
-  it('should correctly identify the local participant', () => {
-    const participants: Participant[] = [
-        { connectionId: '1', displayName: 'Alice', isMuted: false, isDeafened: false, isSpeaking: false },
-        { connectionId: 'local-id', displayName: 'Me', isMuted: false, isDeafened: false, isSpeaking: false },
-    ];
-    service.participants.set(participants);
-    mockSignalrService.connectionId.set('local-id');
+  it('identifies the local participant by connectionId', () => {
+    service.participants.set([
+      makeParticipant({ connectionId: '1', displayName: 'Alice' }),
+      makeParticipant({ connectionId: 'local-id', displayName: 'Me' }),
+    ]);
+    signalr.connectionId.set('local-id');
 
     expect(service.localParticipant()?.displayName).toBe('Me');
   });
 
-  it('should update speaking status', () => {
-    const participant: Participant = { connectionId: '1', displayName: 'Alice', isMuted: false, isDeafened: false, isSpeaking: false };
-    service.participants.set([participant]);
+  it('exposes isAnyScreenSharing', () => {
+    service.participants.set([makeParticipant({ connectionId: '1' })]);
+    expect(service.isAnyScreenSharing()).toBe(false);
+
+    service.participants.set([makeParticipant({ connectionId: '1', isSharingScreen: true })]);
+    expect(service.isAnyScreenSharing()).toBe(true);
+  });
+
+  it('updateSpeakingStatus toggles speaking and keeps identity when unchanged', () => {
+    service.participants.set([makeParticipant({ connectionId: '1', isSpeaking: false })]);
 
     service.updateSpeakingStatus('1', true);
     expect(service.participants()[0].isSpeaking).toBe(true);
 
-    service.updateSpeakingStatus('1', false);
-    expect(service.participants()[0].isSpeaking).toBe(false);
+    const ref = service.participants()[0];
+    service.updateSpeakingStatus('1', true); // same value → no new object
+    expect(service.participants()[0]).toBe(ref);
   });
 
-  it('should not update state if speaking status is the same', () => {
-    const participant: Participant = { connectionId: '1', displayName: 'Alice', isMuted: false, isDeafened: false, isSpeaking: false };
-    service.participants.set([participant]);
-    
-    const originalParticipant = service.participants()[0];
+  it('updateParticipantVolume updates state and persists to localStorage', () => {
+    service.participants.set([makeParticipant({ connectionId: '1', displayName: 'Alice' })]);
 
-    // call update with the same value
-    service.updateSpeakingStatus('1', false); 
-    
-    // check that the object reference has not changed
-    expect(service.participants()[0]).toBe(originalParticipant);
+    service.updateParticipantVolume('1', 150);
+
+    expect(service.participants()[0].volume).toBe(150);
+    expect(localStorage.getItem('gv_vol_Alice')).toBe('150');
   });
 });

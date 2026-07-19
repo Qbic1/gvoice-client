@@ -1,6 +1,7 @@
-import { Component, inject, signal, ElementRef, ViewChild, AfterViewChecked, HostListener } from '@angular/core';
+import { Component, inject, signal, ElementRef, ViewChild, AfterViewChecked, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { SignalRService } from '../../core/services/signalr.service';
 import { DisplayNameService } from '../../core/services/display-name.service';
 import { ChatMessage } from '../../core/models/chat-message.model';
@@ -252,7 +253,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
     }
   `]
 })
-export class ChatComponent implements AfterViewChecked {
+export class ChatComponent implements AfterViewChecked, OnDestroy {
   private signalrService = inject(SignalRService);
   private displayNameService = inject(DisplayNameService);
 
@@ -260,10 +261,12 @@ export class ChatComponent implements AfterViewChecked {
   messageInput = '';
   lightboxImage = signal<string | null>(null);
 
+  private subscriptions = new Subscription();
+
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
 
   constructor() {
-    this.signalrService.receiveChatMessage$.subscribe(data => {
+    this.subscriptions.add(this.signalrService.receiveChatMessage$.subscribe(data => {
       const currentLocalName = this.displayNameService.displayName();
       this.messages.update(list => [...list, {
         displayName: data.displayName,
@@ -271,9 +274,9 @@ export class ChatComponent implements AfterViewChecked {
         timestamp: new Date(data.timestamp),
         isLocal: data.displayName === currentLocalName
       }]);
-    });
+    }));
 
-    this.signalrService.receiveChatHistory$.subscribe(history => {
+    this.subscriptions.add(this.signalrService.receiveChatHistory$.subscribe(history => {
       const currentLocalName = this.displayNameService.displayName();
       this.messages.set(history.map(msg => ({
         displayName: msg.displayName,
@@ -281,10 +284,12 @@ export class ChatComponent implements AfterViewChecked {
         timestamp: new Date(msg.timestamp),
         isLocal: msg.displayName === currentLocalName
       })));
-    });
+    }));
   }
 
   ngAfterViewChecked() { this.scrollToBottom(); }
+
+  ngOnDestroy() { this.subscriptions.unsubscribe(); }
 
   sendMessage(event: Event) {
     event.preventDefault();
