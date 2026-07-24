@@ -29,6 +29,13 @@ import { AdminService } from '../../core/services/admin.service';
           </div>
 
           <div class="header-right">
+            <button class="icon-btn" (click)="refresh()" [disabled]="isRefreshing()" title="Refresh rooms">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"/>
+                <polyline points="1 20 1 14 7 14"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+            </button>
             <div class="rooms-badge" *ngIf="rooms().length > 0">
               <span class="rooms-dot"></span>
               <span class="rooms-count">{{ rooms().length }}</span>
@@ -299,6 +306,32 @@ import { AdminService } from '../../core/services/admin.service';
       align-items: center;
       gap: 0.5rem;
       flex-shrink: 0;
+    }
+
+    /* Icon button (refresh) */
+    .icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .icon-btn:hover:not(:disabled) {
+      background: var(--bg-muted);
+      color: var(--text-primary);
+      border-color: var(--accent);
+    }
+    .icon-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     /* Rooms badge */
@@ -596,7 +629,6 @@ import { AdminService } from '../../core/services/admin.service';
       border-color: transparent var(--border) transparent transparent;
     }
     @media (max-width: 800px) {
-      /* On smaller screens where space is tight, show below or handle differently */
       .participants-popover {
         left: auto;
         right: 0;
@@ -732,7 +764,6 @@ import { AdminService } from '../../core/services/admin.service';
       box-shadow: var(--shadow-lg);
       animation: slideUp 0.22s ease-out;
     }
-    /* Drag handle */
     .modal::before {
       content: '';
       display: block;
@@ -801,7 +832,7 @@ import { AdminService } from '../../core/services/admin.service';
       padding: 0.75rem 1rem;
       border: 1px solid var(--border);
       border-radius: 10px;
-      font-size: 1rem; /* 16px — prevents iOS auto-zoom */
+      font-size: 1rem;
       background: var(--bg-base);
       color: var(--text-primary);
       transition: all 0.2s;
@@ -836,6 +867,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
   showAdminLogin = signal(false);
   showCreateRoom = signal(false);
   errorMessage = signal<string | null>(null);
+  isRefreshing = signal(false);
 
   activeRoomId = signal<string | null>(null);
   activeParticipants = signal<string[]>([])
@@ -855,6 +887,16 @@ export class LobbyComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() { this.subscriptions.unsubscribe(); }
+
+  async refresh() {
+    if (this.isRefreshing()) return;
+    this.isRefreshing.set(true);
+    try {
+      this.rooms.set(await this.signalrService.fetchRooms());
+    } finally {
+      this.isRefreshing.set(false);
+    }
+  }
 
   async toggleParticipants(event: Event, roomId: string) {
     event.stopPropagation();
