@@ -53,6 +53,10 @@ export class WebRtcService {
 
   private screenStream: MediaStream | null = null;
   private screenSenders = new Map<string, RTCRtpSender[]>();
+  // The sender carrying the local microphone, per peer. Tracked explicitly
+  // because screen sharing adds a SECOND audio sender (system/tab audio) —
+  // picking "the first audio sender" would swap the mic track into it.
+  private micSenders = new Map<string, RTCRtpSender>();
 
   // Perfect Negotiation state
   private makingOffer = new Map<string, boolean>();
@@ -88,6 +92,17 @@ export class WebRtcService {
     // RoomJoined/PeerJoined events that follow the automatic re-Join.
     this.signalrService.reconnected$.subscribe(() => {
       this.closeAllPeerConnections();
+    });
+
+    // The server re-registers a rejoining peer with default state (unmuted,
+    // undeafened, not sharing), so whatever the user had toggled locally has to
+    // be broadcast again — otherwise the mic button says "muted" while everyone
+    // else sees an open mic. Screen tracks re-attach on their own, because
+    // createPeerConnection re-adds them to every new peer connection.
+    this.signalrService.roomRejoined$.subscribe(() => {
+      if (this.isMuted()) this.signalrService.updateState('muted', true);
+      if (this.isDeafened()) this.signalrService.updateState('deafened', true);
+      if (this.isSharingScreen()) this.signalrService.updateState('sharingScreen', true);
     });
 
     this.signalrService.peerStateUpdated$.subscribe((data) => {
@@ -141,6 +156,11 @@ export class WebRtcService {
     if (this.localStream && !mustReinit) return this.localStream;
     if (this.getLocalStreamPromise && !mustReinit) return this.getLocalStreamPromise;
 
+    // A reinit builds a brand-new processed stream, and a fresh getUserMedia
+    // track always comes back enabled — remember the mute state so switching
+    // input device (or recovering a dead mic) can't silently open the mic.
+    const wasMuted = this.isMuted();
+
     if (mustReinit && this.localStream) {
       this.localStream.getTracks().forEach(t => t.stop());
       this.localStream = null;
@@ -187,8 +207,19 @@ export class WebRtcService {
 
         if (this.isPttMode()) {
           this.setMicEnabled(false);
+        } else if (mustReinit) {
+          // Restore what the user had before the reinit, not the raw track state.
+          this.setMicEnabled(!wasMuted);
         } else {
           this.isMuted.set(!this.localStream.getAudioTracks()[0].enabled);
+        }
+
+        // processLocalStream() rebuilt the audio graph, so the track every peer
+        // is currently receiving belongs to a destination node that is no longer
+        // connected to anything — without this, a device switch makes the user
+        // inaudible to everyone until they rejoin.
+        if (mustReinit) {
+          this.replaceTracksInAllPeerConnections(this.localProcessedStream ?? this.localStream);
         }
 
         return this.localStream;
@@ -209,13 +240,8 @@ export class WebRtcService {
    * user becomes audible again without a page reload.
    */
   private async reacquireLocalStream() {
-    const stream = await this.getLocalStream(true);
-    if (!stream) return;
-
-    const newTrack = (this.localProcessedStream ?? stream).getAudioTracks()[0];
-    if (newTrack) {
-      this.replaceTracksInAllPeerConnections(this.localProcessedStream ?? stream);
-    }
+    // getLocalStream(true) re-publishes the new track to every peer itself.
+    await this.getLocalStream(true);
   }
 
   /**
@@ -230,6 +256,8 @@ export class WebRtcService {
     this.makingOffer.clear();
     this.ignoreOffer.clear();
     this.iceCandidatesQueue.clear();
+    this.micSenders.clear();
+    this.screenSenders.clear();
   }
 
   /**
@@ -283,8 +311,13 @@ export class WebRtcService {
     if (!newTrack) return;
 
     this.peerConnections.forEach((pc, connectionId) => {
-      const sender = pc.getSenders().find(s => s.track?.kind === 'audio');
+      // Prefer the tracked mic sender; fall back to the first audio sender only
+      // for connections created before this map existed (e.g. a hot reload).
+      const sender = this.micSenders.get(connectionId)
+        ?? pc.getSenders().find(s => s.track?.kind === 'audio');
+
       if (sender) {
+        this.micSenders.set(connectionId, sender);
         sender.replaceTrack(newTrack).catch(err => {
           console.error(`Failed to replace track for peer ${connectionId}:`, err);
         });
@@ -433,7 +466,12 @@ export class WebRtcService {
 
     const tracksStream = this.localProcessedStream ?? stream;
     if (tracksStream) {
-      tracksStream.getTracks().forEach(track => pc.addTrack(track, tracksStream));
+      tracksStream.getTracks().forEach(track => {
+        const sender = pc.addTrack(track, tracksStream);
+        if (track.kind === 'audio') {
+          this.micSenders.set(connectionId, sender);
+        }
+      });
     }
 
     // Add screen tracks if sharing
@@ -613,6 +651,8 @@ export class WebRtcService {
       pc.close();
       this.peerConnections.delete(connectionId);
       this.remoteStreams.delete(connectionId);
+      this.micSenders.delete(connectionId);
+      this.screenSenders.delete(connectionId);
 
       const source = this.participantSourceNodes.get(connectionId);
       if (source) {

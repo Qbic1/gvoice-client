@@ -1,4 +1,4 @@
-import { Component, inject, signal, ElementRef, ViewChild, AfterViewChecked, OnDestroy, HostListener } from '@angular/core';
+import { Component, inject, signal, computed, ElementRef, ViewChild, AfterViewChecked, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -31,15 +31,16 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       </div>
 
       <form (submit)="sendMessage($event)" class="chat-input-form">
-        <input 
-          type="text" 
-          [(ngModel)]="messageInput" 
-          name="message" 
-          placeholder="Message or paste image..." 
+        <input
+          type="text"
+          [(ngModel)]="messageInput"
+          name="message"
+          [placeholder]="isConnected() ? 'Message or paste image...' : 'Reconnecting — messages can\\'t be sent'"
           autocomplete="off"
+          [disabled]="!isConnected()"
           (paste)="onPaste($event)"
         />
-        <button type="submit" [disabled]="!messageInput.trim()">
+        <button type="submit" [disabled]="!messageInput.trim() || !isConnected()">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
           </svg>
@@ -260,6 +261,10 @@ export class ChatComponent implements AfterViewChecked, OnDestroy {
   messages = signal<ChatMessage[]>([]);
   messageInput = '';
   lightboxImage = signal<string | null>(null);
+
+  // The chat stays mounted while reconnecting, but sendChatMessage() is a no-op
+  // when the hub is down — without this the message would vanish silently.
+  isConnected = computed(() => this.signalrService.connectionStatus() === 'Connected');
 
   private subscriptions = new Subscription();
 

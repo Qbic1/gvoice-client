@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  globalSetup: './tests/global-setup',
   timeout: 30000,
   fullyParallel: false, // Parallel tests might conflict with backend in-memory state
   forbidOnly: !!process.env['CI'],

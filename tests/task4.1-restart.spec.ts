@@ -1,8 +1,5 @@
-import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
+import { test, expect, Page } from '@playwright/test';
+import { ensureApiUp, killApi, startApi, waitForApi } from './backend';
 
 test.describe('Task 4.1: Server Restart Recovery', () => {
   const targetRoomId = 'general';
@@ -18,39 +15,32 @@ test.describe('Task 4.1: Server Restart Recovery', () => {
     await page.waitForSelector('.participant-card', { timeout: 15000 });
   }
 
+  // This spec kills the backend on purpose; without restoring it, every later
+  // spec in the (serial) suite fails to join a room.
+  test.beforeEach(ensureApiUp);
+  test.afterAll(ensureApiUp);
+
   test('Should show disconnect banner and allow manual rejoin after server restart', async ({ page }) => {
-    test.setTimeout(60000);
+    // withAutomaticReconnect() retries at 0/2/10/30s before closing for good,
+    // so the overlay cannot appear in under ~35s.
+    test.setTimeout(150000);
+
     await joinRoom(page, 'Restart-User');
-    console.log('Joined room. Killing backend...');
 
-    // Kill backend
-    try {
-        await execAsync('cmd /c "taskkill /F /IM GVoice.API.exe"');
-    } catch (e) {
-        console.warn('Failed to kill backend (maybe already dead?):', e.message);
-    }
+    killApi();
 
-    console.log('Backend killed. Waiting for app to show Error status...');
-    // SignalR will try to reconnect, but it might take a while to hit 'Error' if retries are active.
-    // In SignalRService.ts: .withAutomaticReconnect().build()
-    
-    // According to App.ts, disconnect-overlay shows when connectionStatus() === 'Error'
-    await expect(page.locator('.disconnect-overlay')).toBeVisible({ timeout: 30000 });
-    console.log('Disconnect overlay visible.');
+    // While the retries are still running the room stays mounted behind a banner.
+    await expect(page.locator('.reconnect-banner')).toBeVisible({ timeout: 20000 });
 
-    // Restart backend
-    console.log('Restarting backend...');
-    exec('dotnet run --project ../gvoice-server/GVoice.API', { cwd: process.cwd() });
-    
-    // Wait for backend port
-    await page.waitForTimeout(5000);
+    // Once they are exhausted the session is over and the overlay explains why.
+    await expect(page.locator('.disconnect-overlay')).toBeVisible({ timeout: 90000 });
 
-    // Click rejoin
-    console.log('Clicking rejoin...');
+    startApi();
+    await waitForApi();
+
     await page.click('.disconnect-overlay button');
 
-    // Should be back in the lobby or join screen (rejoin() navigates to '/')
+    // rejoin() tears down the session and navigates back to the lobby.
     await expect(page).toHaveURL('http://localhost:4200/');
-    console.log('Navigated back to lobby.');
   });
 });
