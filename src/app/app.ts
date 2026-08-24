@@ -1,4 +1,4 @@
-import { Component, inject, HostListener, signal, OnInit, OnDestroy, effect } from '@angular/core';
+import { Component, inject, HostListener, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { JoinRoomComponent } from './features/room/join-room.component';
@@ -19,14 +19,16 @@ import { Subscription } from 'rxjs';
   imports: [CommonModule, JoinRoomComponent, SettingsComponent, DesktopLayoutComponent, MobileLayoutComponent],
   template: `
     <main class="app-container">
-      <app-join-room *ngIf="connectionStatus() !== 'Connected'"></app-join-room>
+      <!-- Stays mounted through 'Connecting': this component owns the
+           subscriptions to invalidPassword$ / roomNotFound$ / roomFull$, and the
+           server only answers after the connection is up. Unmount it here and a
+           rejected join is never reported — the user waits forever. Its own
+           button covers the pending state, so there is no separate loader. -->
+      <app-join-room *ngIf="isJoining()"></app-join-room>
 
-      <div *ngIf="connectionStatus() === 'Connecting'" class="status-container">
-        <div class="loader"></div>
-        <p>Connecting to room...</p>
-      </div>
-
-      <div *ngIf="connectionStatus() === 'Connected'" class="room-container">
+      <!-- The room stays mounted while reconnecting: tearing it down would drop
+           the in-memory chat, the active mobile tab, and show the password form. -->
+      <div *ngIf="isInRoom()" class="room-container">
         <app-desktop-layout 
           *ngIf="!isMobile()" 
           (onRejoin)="rejoin()" 
@@ -39,12 +41,21 @@ import { Subscription } from 'rxjs';
         </app-mobile-layout>
       </div>
 
+      <!-- Reconnect banner — non-blocking, the room underneath stays usable -->
+      <div *ngIf="connectionStatus() === 'Reconnecting'" class="reconnect-banner" role="status">
+        <span class="reconnect-dot"></span>
+        <span class="reconnect-text">Connection lost — reconnecting. Voice is muted until this clears.</span>
+        <button class="reconnect-cancel" (click)="rejoin()" aria-label="Stop reconnecting and go back to the lobby">
+          Leave
+        </button>
+      </div>
+
       <!-- Disconnect Overlay -->
       <div *ngIf="connectionStatus() === 'Error'" class="disconnect-overlay">
         <div class="disconnect-card">
           <div class="error-icon">⚠️</div>
-          <h3>Server Disconnected</h3>
-          <p>The session has ended because the connection to the server was lost.</p>
+          <h3>Disconnected</h3>
+          <p>{{ disconnectReason() ?? 'The session has ended because the connection to the server was lost.' }}</p>
           <button (click)="rejoin()" class="primary-btn">Back to Lobby</button>
         </div>
       </div>
@@ -65,18 +76,73 @@ import { Subscription } from 'rxjs';
       font-family: var(--font-family);
       color: var(--text-primary);
     }
-    .status-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100dvh;
-      gap: 1rem;
-      color: var(--text-secondary);
-    }
     .room-container {
       height: 100%;
     }
+    /* ── Reconnect banner ── */
+    .reconnect-banner {
+      position: fixed;
+      top: calc(0.75rem + env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9998;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      max-width: calc(100vw - 2rem);
+      padding: 0.5rem 0.875rem;
+      background: var(--bg-surface);
+      border: 1px solid color-mix(in srgb, var(--error-500) 35%, var(--border));
+      border-radius: 9999px;
+      box-shadow: var(--shadow-md);
+      color: var(--text-primary);
+      font-size: 0.75rem;
+      font-weight: 600;
+      /* The strip itself never swallows a click meant for the room; only the
+         button below opts back in. */
+      pointer-events: none;
+    }
+    .reconnect-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .reconnect-cancel {
+      pointer-events: auto;
+      flex-shrink: 0;
+      margin-left: 0.25rem;
+      padding: 0.25rem 0.625rem;
+      background: var(--bg-muted);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      font-family: var(--font-family);
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .reconnect-cancel:hover {
+      background: var(--accent-subtle);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .reconnect-dot {
+      width: 8px;
+      height: 8px;
+      min-width: 8px;
+      border-radius: 50%;
+      background: var(--error-500);
+      animation: blink 1.2s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.3; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reconnect-dot { animation: none; }
+    }
+
     .disconnect-overlay {
       position: fixed;
       inset: 0;
@@ -131,18 +197,6 @@ import { Subscription } from 'rxjs';
       background: var(--accent-hover);
       transform: translateY(-1px);
     }
-    .loader {
-      width: 32px;
-      height: 32px;
-      border: 4px solid var(--border);
-      border-top: 4px solid var(--accent);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      0%   { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
   `]
 })
 export class App implements OnInit, OnDestroy {
@@ -158,8 +212,18 @@ export class App implements OnInit, OnDestroy {
   private subscriptions = new Subscription();
 
   connectionStatus = this.signalrService.connectionStatus;
+  disconnectReason = this.signalrService.disconnectReason;
   showSettings = signal(false);
   isMobile = this.layoutService.isMobile;
+
+  // Keep the room mounted through a transient reconnect.
+  isInRoom = computed(() =>
+    this.connectionStatus() === 'Connected' || this.connectionStatus() === 'Reconnecting'
+  );
+
+  isJoining = computed(() =>
+    this.connectionStatus() === 'Disconnected' || this.connectionStatus() === 'Connecting'
+  );
 
   ngOnInit() {
     this.subscriptions.add(this.signalrService.peerJoined$.subscribe(() => {

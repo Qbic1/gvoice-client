@@ -35,12 +35,29 @@ export class SignalRService {
   // Emitted after an automatic reconnect completes so consumers (WebRTC) can
   // rebuild peer state under the new connection id.
   public reconnected$ = new Subject<void>();
+  // Emitted after the automatic re-Join that follows a reconnect succeeds, i.e.
+  // the server has re-registered us. The server registers a rejoining peer with
+  // *default* state, so consumers must re-broadcast anything they had toggled.
+  public roomRejoined$ = new Subject<void>();
 
-  connectionStatus = signal<'Disconnected' | 'Connecting' | 'Connected' | 'Error'>('Disconnected');
+  // 'Connecting'   — first connect, no room UI yet.
+  // 'Reconnecting' — transport dropped mid-session; the room stays mounted and
+  //                  SignalR is retrying underneath.
+  connectionStatus = signal<'Disconnected' | 'Connecting' | 'Reconnecting' | 'Connected' | 'Error'>('Disconnected');
   connectionId = signal<string | null>(null);
+  // Why the session ended — shown on the disconnect overlay.
+  disconnectReason = signal<string | null>(null);
 
   // Parameters of the last Join, replayed automatically after a reconnect.
   private lastJoin: { roomId: string, roomPassword: string, displayName: string, isListenOnly: boolean } | null = null;
+  // True between the automatic re-Join and its RoomJoined reply. While set, a
+  // rejection (room gone after a server restart, wrong password, room filled up)
+  // is a terminal session error rather than input for the join form, which is
+  // not mounted during a reconnect.
+  private rejoinPending = false;
+  // Set while we are closing the connection ourselves, so onclose can tell a
+  // deliberate exit from a connection that died under us.
+  private intentionalStop = false;
 
   private participantCache = new Map<string, { names: string[], timestamp: number }>();
   private CACHE_DURATION = 10000; // 10 seconds
@@ -76,7 +93,10 @@ export class SignalRService {
     if (!this.isBrowser || !roomId) return false;
 
     if (this.hubConnection && this.hubConnection.state !== signalR.HubConnectionState.Disconnected) {
+      // Replacing a live connection — its onclose must not report a lost session.
+      this.intentionalStop = true;
       await this.hubConnection.stop();
+      this.intentionalStop = false;
     }
 
     this.connectionStatus.set('Connecting');
@@ -101,7 +121,14 @@ export class SignalRService {
 
     this.hubConnection.onreconnecting((error) => {
       console.warn('SignalR reconnecting:', error);
-      this.connectionStatus.set('Connecting');
+      // Not 'Connecting': the room UI stays mounted so chat, roster and the
+      // controls survive the blip. Tearing it down would drop in-memory chat
+      // history and drop the user back onto the password form.
+      if (this.lastJoin) {
+        this.connectionStatus.set('Reconnecting');
+      } else {
+        this.connectionStatus.set('Connecting');
+      }
     });
 
     this.hubConnection.onreconnected((connectionId) => {
@@ -111,29 +138,50 @@ export class SignalRService {
       // under the new connection id (otherwise we stay muted/invisible).
       this.reconnected$.next();
       if (this.lastJoin) {
+        this.rejoinPending = true;
         this.hubConnection
           ?.invoke('Join', this.lastJoin.roomId, this.lastJoin.roomPassword, this.lastJoin.displayName, this.lastJoin.isListenOnly)
-          .catch(err => console.error('Re-join after reconnect failed:', err));
+          .catch(err => {
+            console.error('Re-join after reconnect failed:', err);
+            this.fail('Reconnected to the server, but rejoining the room failed.');
+          });
       }
     });
 
     this.hubConnection.onclose((error) => {
+      if (this.intentionalStop) {
+        this.intentionalStop = false;
+        return;
+      }
       console.error('SignalR connection closed:', error);
-      this.connectionStatus.set('Error');
-      this.disconnect();
+      this.fail('The connection to the server was lost.');
     });
 
     this.hubConnection.on('PeerJoined', (participant: Participant) => this.peerJoined$.next(participant));
     this.hubConnection.on('PeerLeft', (connectionId: string, displayName: string) => this.peerLeft$.next({ connectionId, displayName }));
     this.hubConnection.on('RoomJoined', (payload: { name: string, participants: Participant[] }) => {
+      const wasRejoin = this.rejoinPending;
+      this.rejoinPending = false;
+      this.disconnectReason.set(null);
       this.connectionStatus.set('Connected');
       this.roomJoined$.next(payload);
+      if (wasRejoin) this.roomRejoined$.next();
     });
     this.hubConnection.on('ReceiveSignal', (fromConnectionId: string, signal: string) => this.receiveSignal$.next({ fromConnectionId, signal }));
     this.hubConnection.on('PeerStateUpdated', (connectionId: string, stateType: string, value: boolean) => this.peerStateUpdated$.next({ connectionId, stateType, value }));
-    this.hubConnection.on('RoomFull', () => this.roomFull$.next());
-    this.hubConnection.on('InvalidPassword', () => this.invalidPassword$.next());
-    this.hubConnection.on('RoomNotFound', () => this.roomNotFound$.next());
+    this.hubConnection.on('RoomFull', () => {
+      if (this.failRejoin('The room filled up while you were disconnected.')) return;
+      this.roomFull$.next();
+    });
+    this.hubConnection.on('InvalidPassword', () => {
+      if (this.failRejoin('The room password changed while you were disconnected.')) return;
+      this.invalidPassword$.next();
+    });
+    this.hubConnection.on('RoomNotFound', () => {
+      // The usual cause: the server restarted and its in-memory rooms are gone.
+      if (this.failRejoin('The room no longer exists — the server was restarted.')) return;
+      this.roomNotFound$.next();
+    });
     this.hubConnection.on('RoomCreated', (room: { id: string, name: string }) => this.roomCreated$.next(room));
     this.hubConnection.on('ReceiveChatMessage', (displayName: string, message: string, timestamp: string) => this.receiveChatMessage$.next({ displayName, message, timestamp }));
     this.hubConnection.on('ReceiveChatHistory', (history: { displayName: string, message: string, timestamp: string }[]) => this.receiveChatHistory$.next(history));
@@ -144,15 +192,54 @@ export class SignalRService {
       return true;
     } catch (err) {
       console.error('SignalR connection failed:', err);
+      this.disconnectReason.set('Could not reach the server.');
       this.connectionStatus.set('Error');
       return false;
     }
   }
 
   disconnect() {
-    this.lastJoin = null;
-    this.hubConnection?.stop();
+    this.teardown();
+    this.disconnectReason.set(null);
     this.connectionStatus.set('Disconnected');
+  }
+
+  /** Ends the session and leaves the user on the disconnect overlay with a reason. */
+  private fail(reason: string) {
+    this.teardown();
+    this.disconnectReason.set(reason);
+    // Set last: `teardown` must not be the thing that decides the final status.
+    this.connectionStatus.set('Error');
+  }
+
+  /**
+   * Turns a Join rejection into a terminal error when it arrives in response to
+   * the automatic re-Join. Returns true if it was handled that way.
+   */
+  private failRejoin(reason: string): boolean {
+    if (!this.rejoinPending) return false;
+    this.rejoinPending = false;
+    this.fail(reason);
+    return true;
+  }
+
+  private teardown() {
+    this.lastJoin = null;
+    this.rejoinPending = false;
+    // stop() resolves asynchronously and fires onclose. Without this flag that
+    // handler would turn a deliberate exit (including cancelling a reconnect)
+    // into an 'Error', leaving the app on the disconnect overlay — and since the
+    // join form only renders while 'Disconnected', the user could never open a
+    // room again without reloading.
+    //
+    // Only raise it when there is really something to close: on an already-dead
+    // connection stop() fires no onclose, and a flag left standing would swallow
+    // the *next*, genuine disconnect.
+    const conn = this.hubConnection;
+    if (conn && conn.state !== signalR.HubConnectionState.Disconnected) {
+      this.intentionalStop = true;
+      conn.stop().finally(() => { this.intentionalStop = false; });
+    }
     this.connectionId.set(null);
     this.receiveChatHistory$.next([]);
   }

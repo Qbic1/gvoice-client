@@ -1,4 +1,5 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
+import { waitForEmptyRoom } from './backend';
 
 test.describe('Task 2: Room Capacity Enforcement', () => {
   const roomId = `general`;
@@ -12,6 +13,10 @@ test.describe('Task 2: Room Capacity Enforcement', () => {
     await page.fill('input[placeholder="Room Password"]', roomPassword);
     await page.click('button[type="submit"]');
   }
+
+  // This spec asserts exact participant counts, so it must not start while the
+  // previous spec's users are still draining out of the room.
+  test.beforeEach(() => waitForEmptyRoom('general'));
 
   test('Should allow 10 users and block the 11th', async ({ browser }) => {
     test.setTimeout(120000); // 2 minutes for 11 users
