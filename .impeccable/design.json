@@ -1,0 +1,600 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-27T17:11:44.246Z",
+  "title": "Design System: VoiceRoom",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Accent Violet",
+        "canonical": "#7c3aed",
+        "note": "Theme-dependent. Value shown is the default Purple theme; all eight themes redefine it.",
+        "tonalRamp": [
+          "#1e0a3c",
+          "#2e1065",
+          "#4c1d95",
+          "#5b21b6",
+          "#6d28d9",
+          "#7c3aed",
+          "#a78bfa",
+          "#f3e8ff"
+        ]
+      },
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "Accent Hover",
+        "canonical": "#6d28d9",
+        "note": "Darkens in light themes, brightens in dark themes — the inversion is deliberate.",
+        "tonalRamp": [
+          "#1e0a3c",
+          "#2e1065",
+          "#4c1d95",
+          "#5b21b6",
+          "#6d28d9",
+          "#7c3aed",
+          "#a78bfa",
+          "#ede9fe"
+        ]
+      },
+      "accent-subtle": {
+        "role": "primary",
+        "displayName": "Accent Subtle",
+        "canonical": "#f3e8ff",
+        "note": "Selection and local-user tint. The accent at panel weight.",
+        "tonalRamp": [
+          "#2e1065",
+          "#4c1d95",
+          "#6d28d9",
+          "#8b5cf6",
+          "#c4b5fd",
+          "#ddd6fe",
+          "#f3e8ff",
+          "#faf5ff"
+        ]
+      },
+      "bg-base": {
+        "role": "neutral",
+        "displayName": "Base",
+        "canonical": "#faf5ff",
+        "note": "Page ground; also the recessed fill for inputs sitting on a surface.",
+        "tonalRamp": [
+          "#0f0a1e",
+          "#1a1033",
+          "#2d1f4e",
+          "#4c1d95",
+          "#a78bfa",
+          "#e9d5ff",
+          "#f3e8ff",
+          "#faf5ff"
+        ]
+      },
+      "bg-surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#ffffff",
+        "note": "Cards, panels, headers, modals, sidebar. White in every light theme.",
+        "tonalRamp": [
+          "#0a0a0f",
+          "#13131a",
+          "#1a1033",
+          "#262626",
+          "#525252",
+          "#e5e7eb",
+          "#f9fafb",
+          "#ffffff"
+        ]
+      },
+      "bg-muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "#f3e8ff",
+        "note": "The recessed tone — control tray, meter well, disabled fills, badge fills.",
+        "tonalRamp": [
+          "#1e1e2a",
+          "#2d1f4e",
+          "#4c1d95",
+          "#7c3aed",
+          "#c4b5fd",
+          "#e9d5ff",
+          "#f3e8ff",
+          "#faf5ff"
+        ]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Text Primary",
+        "canonical": "#3b0764",
+        "note": "Names, headings, message bodies, values. Also the PTT-active inversion fill.",
+        "tonalRamp": [
+          "#1e0a3c",
+          "#3b0764",
+          "#4c1d95",
+          "#6d28d9",
+          "#a78bfa",
+          "#ddd6fe",
+          "#f5f3ff",
+          "#ffffff"
+        ]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "Text Secondary",
+        "canonical": "#7c3aed",
+        "note": "Section labels, field labels, inactive control glyphs.",
+        "tonalRamp": [
+          "#2e1065",
+          "#4c1d95",
+          "#6d28d9",
+          "#7c3aed",
+          "#a78bfa",
+          "#c4b5fd",
+          "#ddd6fe",
+          "#f5f3ff"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Text Muted",
+        "canonical": "#a78bfa",
+        "note": "Placeholders, hints, capacity counts, inactive nav, disabled text.",
+        "tonalRamp": [
+          "#2e1065",
+          "#4c1d95",
+          "#7c3aed",
+          "#8b5cf6",
+          "#a78bfa",
+          "#c4b5fd",
+          "#ddd6fe",
+          "#f5f3ff"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Border",
+        "canonical": "#e9d5ff",
+        "note": "The hairline that does nearly all separation work. 1px passive, 1.5px interactive.",
+        "tonalRamp": [
+          "#2d1f4e",
+          "#4c1d95",
+          "#6d28d9",
+          "#a78bfa",
+          "#c4b5fd",
+          "#ddd6fe",
+          "#e9d5ff",
+          "#f3e8ff"
+        ]
+      },
+      "voice-green": {
+        "role": "tertiary",
+        "displayName": "Voice Green",
+        "canonical": "#10b981",
+        "note": "FIXED — identical in all eight themes. A mic is open or a peer is present.",
+        "tonalRamp": [
+          "#022c22",
+          "#064e3b",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#10b981",
+          "#6ee7b7",
+          "#d1fae5"
+        ]
+      },
+      "failure-red": {
+        "role": "tertiary",
+        "displayName": "Failure Red",
+        "canonical": "#ef4444",
+        "note": "FIXED — identical in all eight themes. Muted, deafened, at capacity, disconnected, destructive.",
+        "tonalRamp": [
+          "#450a0a",
+          "#7f1d1d",
+          "#991b1b",
+          "#b91c1c",
+          "#dc2626",
+          "#ef4444",
+          "#fca5a5",
+          "#fee2e2"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Join screen title. Once per screen at most, often absent."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Modal titles and the room title in the header."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Participant names, room card names, the keycap badge."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Chat message content, empty-state copy, modal subtitles."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Every section header and field label. Uppercase, 700, 0.05em. The workhorse."
+      },
+      "readout": {
+        "displayName": "Readout",
+        "purpose": "Live numeric values only. Monospace keeps changing digits from jittering the layout."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-sm",
+        "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        "purpose": "Seated. Cards at rest, headers, control buttons, keycap badge."
+      },
+      {
+        "name": "shadow-md",
+        "value": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+        "purpose": "Lifted. Room card on hover, mobile PTT button, reconnect banner."
+      },
+      {
+        "name": "shadow-lg",
+        "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        "purpose": "Floating. Modals, sheets, participant popover, join card."
+      },
+      {
+        "name": "glow-brand",
+        "value": "0 3px 10px color-mix(in srgb, var(--accent) 35%, transparent)",
+        "purpose": "Accent glow under the brand mark only."
+      },
+      {
+        "name": "glow-primary",
+        "value": "0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent)",
+        "purpose": "Accent glow under the primary button."
+      },
+      {
+        "name": "glow-transmitting",
+        "value": "0 0 20px color-mix(in srgb, var(--success-500) 30%, transparent)",
+        "purpose": "Green glow under the mobile PTT button while transmitting."
+      },
+      {
+        "name": "ring-selected",
+        "value": "0 0 0 2px var(--accent)",
+        "purpose": "Selection ring on the active theme chip."
+      }
+    ],
+    "motion": [
+      {
+        "name": "default",
+        "value": "all 0.2s",
+        "purpose": "The system default for buttons, cards, inputs, badges."
+      },
+      {
+        "name": "snap",
+        "value": "all 0.15s",
+        "purpose": "Settings tabs, theme chips, bottom-nav items — small targets react faster."
+      },
+      {
+        "name": "ease-emphasized",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "The mobile PTT button state change."
+      },
+      {
+        "name": "ease-pulse",
+        "value": "cubic-bezier(0.24, 0, 0.38, 1)",
+        "purpose": "The speaking ring pulse, 1.5s infinite."
+      },
+      {
+        "name": "lift-hover",
+        "value": "translateY(-1px)",
+        "purpose": "Standard hover lift on buttons and theme chips."
+      },
+      {
+        "name": "lift-card",
+        "value": "translateY(-2px)",
+        "purpose": "Room card hover lift, desktop only (>=600px)."
+      },
+      {
+        "name": "sheet-in",
+        "value": "slideUp 0.22s ease-out",
+        "purpose": "Mobile bottom sheet entry."
+      },
+      {
+        "name": "popover-in",
+        "value": "popIn 0.2s ease-out",
+        "purpose": "Participant popover entry."
+      },
+      {
+        "name": "scrim-in",
+        "value": "fadeIn 0.15s ease-out",
+        "purpose": "Modal overlay entry."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "xs-label",
+        "value": "360px",
+        "purpose": "Drop the rooms-badge label."
+      },
+      {
+        "name": "xs-icon",
+        "value": "380px",
+        "purpose": "Header buttons go icon-only."
+      },
+      {
+        "name": "grid",
+        "value": "580px",
+        "purpose": "Room list becomes an auto-fill grid."
+      },
+      {
+        "name": "comfortable",
+        "value": "600px",
+        "purpose": "Lobby padding, card radius, avatar size; modal centers instead of docking."
+      },
+      {
+        "name": "join",
+        "value": "640px",
+        "purpose": "Join card goes full-bleed."
+      },
+      {
+        "name": "mobile",
+        "value": "768px",
+        "purpose": "Chat panel loses its border and radius."
+      },
+      {
+        "name": "popover",
+        "value": "800px",
+        "purpose": "Participant popover flips from beside the card to below it."
+      }
+    ],
+    "themes": {
+      "note": "The identity is the eleven-token structure; these eight sets are the worlds it renders in. Verify new work against at least Purple and Obsidian.",
+      "light": [
+        "purple",
+        "ocean",
+        "rose",
+        "amber"
+      ],
+      "dark": [
+        "dark-purple",
+        "dark-ocean",
+        "noir",
+        "obsidian"
+      ],
+      "accents": {
+        "purple": "#7c3aed",
+        "ocean": "#0d9488",
+        "rose": "#e11d48",
+        "amber": "#d97706",
+        "dark-purple": "#a78bfa",
+        "dark-ocean": "#06b6d4",
+        "noir": "#f43f5e",
+        "obsidian": "#ffb347"
+      }
+    },
+    "avatarPalette": {
+      "note": "The one sanctioned raw-hex set. A display name or room name is hashed to a stable index so a person is the same color for everyone, in every theme.",
+      "participants": [
+        "#6366f1",
+        "#ec4899",
+        "#8b5cf6",
+        "#f59e0b",
+        "#10b981",
+        "#3b82f6"
+      ],
+      "rooms": [
+        "#6366f1",
+        "#ec4899",
+        "#8b5cf6",
+        "#0d9488",
+        "#f59e0b",
+        "#3b82f6",
+        "#e11d48",
+        "#10b981"
+      ]
+    },
+    "performanceMode": {
+      "className": "app-background",
+      "purpose": "Applied when the tab is backgrounded. Force-disables every animation, transition, caret, backdrop-filter, speaking-ring glow, and will-change in the app.",
+      "constraint": "Any motion, blur, or glow must survive being switched off by this class. State must be readable from color, glyph, and border alone."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single call to act on a screen. Accent fill with an accent-tinted glow.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>New Room</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 0.3rem; background: var(--accent); color: #fff; border: none; padding: 0.5rem 0.875rem; border-radius: 8px; cursor: pointer; font-family: var(--font-family); font-weight: 600; font-size: 0.8125rem; white-space: nowrap; transition: all 0.2s; box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent); } .ds-btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-btn-primary:disabled { background: var(--bg-muted); color: var(--text-muted); cursor: not-allowed; box-shadow: none; transform: none; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Surface fill with a hairline border. Warms to accent on hover rather than darkening.",
+      "html": "<button class=\"ds-btn-secondary\">Admin</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; gap: 0.3rem; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border); padding: 0.5rem 0.875rem; border-radius: 8px; cursor: pointer; font-family: var(--font-family); font-weight: 600; font-size: 0.8125rem; white-space: nowrap; transition: all 0.2s; } .ds-btn-secondary:hover { border-color: var(--accent); background: var(--accent-subtle); color: var(--accent); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Voice Control Tray",
+      "kind": "custom",
+      "refersTo": "control-button",
+      "description": "The signature component. Three 48px squares seated in a recessed tray: mic (open = Voice Green), PTT toggle (on = full inversion), deafen (on = red tint).",
+      "html": "<div class=\"ds-tray\"><button class=\"ds-ctl ds-ctl-active\" title=\"Mute\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z\"/><path d=\"M19 10v2a7 7 0 0 1-14 0v-2\"/><line x1=\"12\" y1=\"19\" x2=\"12\" y2=\"23\"/></svg></button><button class=\"ds-ctl ds-ctl-ptt\" title=\"Enable PTT\"><span class=\"ds-ctl-text\">PTT</span></button><button class=\"ds-ctl ds-ctl-muted\" title=\"Undeafen\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 18v-6a9 9 0 0 1 18 0v6\"/><path d=\"M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z\"/><line x1=\"2\" y1=\"2\" x2=\"22\" y2=\"22\"/></svg></button></div>",
+      "css": ".ds-tray { display: inline-flex; background: var(--bg-muted); padding: 4px; border-radius: 12px; gap: 4px; } .ds-ctl { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border: none; border-radius: 8px; background: var(--bg-surface); cursor: pointer; transition: all 0.2s; color: var(--text-secondary); box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); } .ds-ctl:hover:not(:disabled) { background: var(--bg-base); color: var(--text-primary); transform: translateY(-1px); } .ds-ctl:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-ctl-active { color: var(--success-500); } .ds-ctl-muted { color: var(--error-500); background: color-mix(in srgb, var(--error-500) 12%, var(--bg-surface)); } .ds-ctl-ptt { background: var(--text-primary); color: var(--bg-surface); } .ds-ctl-ptt:hover:not(:disabled) { background: var(--text-secondary); color: var(--bg-surface); } .ds-ctl-text { font-size: 0.75rem; font-weight: 800; font-family: var(--font-family); } .ds-ctl:disabled { opacity: 0.5; cursor: not-allowed; background: var(--bg-muted); color: var(--text-muted); }"
+    },
+    {
+      "name": "Participant Card (speaking)",
+      "kind": "card",
+      "refersTo": "participant-card",
+      "description": "The roster row. Hash-colored avatar, pulsing Voice Green ring while speaking, red status glyphs. Mute always outranks the ring.",
+      "html": "<div class=\"ds-pcard\"><div class=\"ds-avatar\" style=\"background-color:#8b5cf6\">A<div class=\"ds-ring\"></div></div><div class=\"ds-pinfo\"><div class=\"ds-prow\"><span class=\"ds-pname\">Anna</span></div><div class=\"ds-pstatus\"><span class=\"ds-badge\">Listen-only</span><span class=\"ds-vol\">70%</span></div></div></div>",
+      "css": ".ds-pcard { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 0.625rem; padding: 0.75rem; display: flex; align-items: center; gap: 0.75rem; transition: all 0.2s; cursor: pointer; font-family: var(--font-family); max-width: 280px; } .ds-pcard:hover { border-color: var(--accent); background: var(--accent-subtle); } .ds-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 1rem; position: relative; flex-shrink: 0; } .ds-ring { position: absolute; top: -3px; left: -3px; right: -3px; bottom: -3px; border: 2px solid var(--success-500); border-radius: 50%; outline: 2px solid var(--success-500); animation: ds-pulse-ring 1.5s cubic-bezier(0.24, 0, 0.38, 1) infinite; } @keyframes ds-pulse-ring { 0% { transform: scale(0.95); opacity: 1; } 70% { transform: scale(1.1); opacity: 0; } 100% { transform: scale(0.95); opacity: 0; } } .ds-pinfo { flex: 1; min-width: 0; display: flex; flex-direction: column; } .ds-prow { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; } .ds-pname { font-weight: 500; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); } .ds-pstatus { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.125rem; } .ds-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: var(--bg-muted); color: var(--text-secondary); font-weight: 600; } .ds-vol { font-size: 0.65rem; font-weight: 700; color: var(--accent); background: var(--accent-subtle); padding: 1px 4px; border-radius: 4px; }"
+    },
+    {
+      "name": "Room Card",
+      "kind": "card",
+      "refersTo": "room-card",
+      "description": "The lobby unit. Hash-colored squircle, capacity bar that turns red at 10/10, and a join button that fills with accent on card hover.",
+      "html": "<div class=\"ds-rcard\"><div class=\"ds-ravatar\" style=\"background-color:#0d9488\">G</div><div class=\"ds-rinfo\"><h3>General</h3><div class=\"ds-rmeta\"><div class=\"ds-cap\"><div class=\"ds-cap-fill\" style=\"width:40%\"></div></div><span class=\"ds-cap-text\">4/10</span></div></div><span class=\"ds-join\">Join</span></div>",
+      "css": ".ds-rcard { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.125rem 1.25rem; display: flex; align-items: center; gap: 1rem; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); font-family: var(--font-family); max-width: 340px; } .ds-rcard:hover { border-color: var(--accent); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); transform: translateY(-2px); } .ds-rcard:hover .ds-join { background: var(--accent); color: #fff; border-color: var(--accent); } .ds-ravatar { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 800; color: #fff; flex-shrink: 0; } .ds-rinfo { flex: 1; min-width: 0; } .ds-rinfo h3 { margin: 0 0 0.425rem; font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-rmeta { display: flex; align-items: center; gap: 0.5rem; } .ds-cap { flex: 1; height: 3px; background: var(--bg-muted); border-radius: 9999px; overflow: hidden; } .ds-cap-fill { height: 100%; background: var(--accent); border-radius: 9999px; transition: width 0.3s ease; } .ds-cap-text { font-size: 0.63rem; font-weight: 700; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; } .ds-join { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.7rem; font-weight: 700; padding: 0.3rem 0.6rem; border-radius: 6px; border: 1.5px solid var(--border); color: var(--text-secondary); background: var(--bg-base); transition: all 0.2s; white-space: nowrap; flex-shrink: 0; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Always recessed one tone below its container. Focus replaces the border with a 2px accent outline rather than stacking on it.",
+      "html": "<div class=\"ds-field\"><label for=\"ds-in-1\">Room Password</label><input id=\"ds-in-1\" class=\"ds-input\" type=\"text\" placeholder=\"Enter password\"></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 0.375rem; font-family: var(--font-family); max-width: 320px; } .ds-field label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); } .ds-input { width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 10px; font-size: 1rem; background: var(--bg-base); color: var(--text-primary); transition: all 0.2s; box-sizing: border-box; font-family: var(--font-family); } .ds-input::placeholder { color: var(--text-muted); } .ds-input:focus { outline: 2px solid var(--accent); border-color: transparent; } .ds-input:disabled { background: var(--bg-muted); color: var(--text-muted); cursor: not-allowed; }"
+    },
+    {
+      "name": "Connection Pill",
+      "kind": "chip",
+      "refersTo": "badge-status",
+      "description": "Status readout built entirely from color-mix over the fixed status colors. The dot carries explicit min-width/min-height because flex was squashing it.",
+      "html": "<div class=\"ds-pill\"><span class=\"ds-dot\"></span>Connected</div>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--font-family); font-size: 0.75rem; font-weight: 600; color: var(--success-500); padding: 0.25rem 0.75rem; background: color-mix(in srgb, var(--success-500) 15%, var(--bg-surface)); border-radius: 9999px; border: 1px solid color-mix(in srgb, var(--success-500) 25%, transparent); } .ds-dot { width: 8px; height: 8px; min-width: 8px; min-height: 8px; background: var(--success-500); border-radius: 50%; display: block; }"
+    },
+    {
+      "name": "Keycap Badge",
+      "kind": "custom",
+      "refersTo": "key-badge",
+      "description": "The PTT binding as a physical keycap — 1.5px border thickening to 3px on the bottom edge. The system’s one deliberate piece of skeuomorphism.",
+      "html": "<span class=\"ds-key\">Space</span>",
+      "css": ".ds-key { display: inline-block; background: var(--bg-surface); border: 1.5px solid var(--border); border-bottom-width: 3px; color: var(--text-primary); font-family: var(--font-family); font-size: 1rem; font-weight: 800; padding: 0.375rem 1rem; border-radius: 8px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); min-width: 80px; text-align: center; }"
+    },
+    {
+      "name": "Chat Bubbles",
+      "kind": "custom",
+      "refersTo": "message-bubble-remote",
+      "description": "Remote on surface with a hairline border, local filled with accent. The 2px tail corner on the sender side is the only asymmetric radius in the system.",
+      "html": "<div class=\"ds-chat\"><div class=\"ds-msg-wrap\"><div class=\"ds-msg\"><div class=\"ds-msg-head\"><span class=\"ds-sender\">Anna</span><span>14:02</span></div><div class=\"ds-msg-body\">Link is up, join whenever.</div></div></div><div class=\"ds-msg-wrap ds-msg-wrap-local\"><div class=\"ds-msg ds-msg-local\"><div class=\"ds-msg-head\"><span class=\"ds-sender\">You</span><span>14:03</span></div><div class=\"ds-msg-body\">On my way.</div></div></div></div>",
+      "css": ".ds-chat { display: flex; flex-direction: column; gap: 1rem; background: var(--bg-base); padding: 1.5rem; border-radius: 12px; font-family: var(--font-family); max-width: 380px; } .ds-msg-wrap { display: flex; flex-direction: column; align-items: flex-start; } .ds-msg-wrap-local { align-items: flex-end; } .ds-msg { max-width: 75%; padding: 0.75rem 1rem; border-radius: 12px; border-bottom-left-radius: 2px; background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-primary); } .ds-msg-local { background: var(--accent); color: #fff; border-color: transparent; border-bottom-left-radius: 12px; border-bottom-right-radius: 2px; } .ds-msg-head { display: flex; justify-content: space-between; gap: 1.5rem; font-size: 0.7rem; margin-bottom: 0.25rem; opacity: 0.7; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; } .ds-sender { font-weight: 700; } .ds-msg-body { font-size: 0.9375rem; line-height: 1.4; word-break: break-word; }"
+    },
+    {
+      "name": "Mobile Bottom Nav",
+      "kind": "nav",
+      "refersTo": "button-ghost",
+      "description": "Three equal-flex tabs, stacked 20px stroke icon over a tracked uppercase micro-label. Muted at rest, accent when active.",
+      "html": "<nav class=\"ds-nav\"><button class=\"ds-nav-btn ds-nav-active\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M23 21v-2a4 4 0 0 0-3-3.87\"/><path d=\"M16 3.13a4 4 0 0 1 0 7.75\"/></svg><span>Room</span></button><button class=\"ds-nav-btn\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\"/></svg><span>Chat</span></button><button class=\"ds-nav-btn\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 10 3.09V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"/></svg><span>Settings</span></button></nav>",
+      "css": ".ds-nav { display: flex; background: var(--bg-surface); border-top: 1px solid var(--border); font-family: var(--font-family); max-width: 340px; } .ds-nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; padding: 0.625rem 0; background: none; border: none; cursor: pointer; color: var(--text-muted); font-family: var(--font-family); font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; transition: all 0.15s; } .ds-nav-btn:hover { color: var(--text-secondary); } .ds-nav-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; } .ds-nav-active { color: var(--accent); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Console",
+    "overview": "VoiceRoom is a panel you glance at, not a page you read. Its users keep it open for hours in a background tab while doing something else; the interface’s whole job is to answer who is here, who is talking, can they hear me in the width of one look. So the system is built on restraint that isn’t timidity: the layout holds still, the type stays small and dense, and color is spent almost entirely on reporting state rather than on decorating surfaces. When something in the console lights up, it means something changed.\n\nThe identity does not live in a palette, because there isn’t one fixed palette. Eleven semantic tokens — three backgrounds, three text weights, a border, and a three-step accent — are redefined wholesale by eight named themes (Purple, Ocean, Rose, Amber and their dark counterparts Dark Purple, Midnight Ocean, Noir, Obsidian), and every component color routes through those eleven names. What stays constant across all eight worlds is the structure: the spacing rhythm, the radius ladder, the weight hierarchy, and the two status colors that refuse to theme. That invariance is the design system. Hue is the user’s; grammar is ours.\n\nThe component feel is tactile and physical. Voice controls are 48px squares seated in a recessed tray. The push-to-talk key renders as an actual keycap with a thickened 3px bottom border. Mobile controls fire a 15ms haptic tick. Interactive chrome carries 1.5px borders where passive surfaces carry 1px, and hovers lift a single pixel. Nothing announces itself, but everything answers when touched — and future work should push that physicality further rather than sand it flat.",
+    "keyCharacteristics": [
+      "Eleven semantic tokens, eight themes, zero raw hex in component code.",
+      "Color reports state; it does not decorate. Green means a mic is open.",
+      "Emphasis at small sizes comes from weight and tracking, never from size.",
+      "Flat surfaces separated by hairline borders; shadow means floating or hovered.",
+      "Radius scales with the surface it wraps: 4px on chips, 20px on the mobile sheet.",
+      "Every animation, blur, and glow must survive being switched off in one class."
+    ],
+    "rules": [
+      {
+        "name": "The Eleven Tokens Rule",
+        "body": "No component may contain a raw color value. Every background, text color, and border resolves to one of the eleven semantic variables or to the two fixed status colors. The only sanctioned exceptions are the avatar hash palette, #fff as the foreground on a filled accent, and the rgba(0,0,0,...) scrims behind modals and the lightbox. A hex code appearing in a new component is a bug, not a style choice — it will be correct in one theme and wrong in seven.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Fixed Lights Rule",
+        "body": "Voice Green and Failure Red do not theme. They are the only two colors that mean the same thing in all eight worlds, and that constancy is what makes them readable as signals. Never re-map them per theme, and never borrow them for anything that isn’t a state report.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tint, Don’t Pick Rule",
+        "body": "Status backgrounds and status borders are derived, not chosen, via color-mix in srgb. The established mix percentages are 8-15% for fills and 25-35% for borders. Never hand-pick a tint hex; it will only be right on one background.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Loud Color Rule",
+        "body": "A single screen shows at most one accent-filled element competing for attention. The room card’s join button fills with accent on hover, not at rest. Filled accent is a call to act; more than one on screen and none of them read.",
+        "section": "colors"
+      },
+      {
+        "name": "The Shout in Small Rule",
+        "body": "Emphasis at small sizes comes from weight, case, and letter-spacing — never from size. A label does not get bigger to matter more; it goes to 700, uppercase, and 0.05em. This is why the whole interface stays dense without ever feeling shouty.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tracking Inversion Rule",
+        "body": "Tracking runs opposite to size. Anything above 1rem tightens (-0.025em to -0.03em); anything below 0.75rem opens up (0.05em to 0.1em). Never ship a tracked-out heading or a tight micro-label.",
+        "section": "typography"
+      },
+      {
+        "name": "The Ellipsis Always Rule",
+        "body": "Every user-supplied string is nowrap + overflow hidden + text-overflow ellipsis inside a min-width: 0 flex child. Names are unvalidated and can be any length; nothing in this layout may grow to fit one.",
+        "section": "typography"
+      },
+      {
+        "name": "The Ten Slot Rule",
+        "body": "The roster is capped at 10 participants server-side, so every list in this system is bounded and short. Do not virtualize, do not paginate, and do not design an overflow affordance for the participant list.",
+        "section": "layout"
+      },
+      {
+        "name": "The Two Shells Rule",
+        "body": "Desktop and mobile are separate components by design. When adding a feature to the room, it must be placed deliberately in both — a change that appears only in desktop-layout is a half-shipped change.",
+        "section": "layout"
+      },
+      {
+        "name": "The Shadow Means Airborne Rule",
+        "body": "A shadow is not decoration and not hierarchy. It appears when an element is literally above the page (modal, popover, sheet) or is responding to the pointer. A surface that is merely important gets a border and a tone, not a shadow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Scrim Pair Rule",
+        "body": "Overlays use exactly two established scrims: rgba(0,0,0,0.5) with backdrop-filter blur(6px) for modals, and rgba(0,0,0,0.92) unblurred for the image lightbox. Do not introduce a third.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Radius Ladder Rule",
+        "body": "Radius is a function of the element’s size and role, not a per-component choice: inline chips 4-6px, controls and fields 8-10px, cards and panels 12-14px, sheets 20px, status and identity shapes fully round. A new component picks its rung; it does not invent a value.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Chat Bubble Tail Rule",
+        "body": "Message bubbles keep 12px on three corners and collapse to 2px on the corner nearest their sender — bottom-left for remote, bottom-right for local. This is the only asymmetric radius in the system and it is what makes authorship readable without an avatar.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Mute Wins Rule",
+        "body": "When a participant is both muted and producing audio, the mute indicator shows and the speaking ring is suppressed. State that constrains takes visual priority over state that merely reports. This is a product invariant, not a styling preference.",
+        "section": "components"
+      },
+      {
+        "name": "The Disabled Says Why Rule",
+        "body": "Every disabled control carries a title explaining the reason — Microphone unavailable, You are sharing, PTT Active. A control that is dimmed without an explanation is an unfinished control.",
+        "section": "components"
+      },
+      {
+        "name": "The Recessed Input Rule",
+        "body": "Inputs and trays are always one tone below their container: --bg-base inside a --bg-surface panel, --bg-muted for the control tray and meter well. Nothing interactive floats above its parent’s tone.",
+        "section": "components"
+      },
+      {
+        "name": "The Background Tab Rule",
+        "body": "A single class, app-background, is applied when the tab is not in the foreground, and it force-disables every animation, transition, caret, backdrop-filter, speaking-ring glow, and will-change in the app. Any motion, blur, or glow you add must be switchable off by that class and the UI must remain fully legible without it. Encode state in color, glyph, and border first; let motion be the amplifier, never the message.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do route every color through the eleven semantic tokens, and verify a new component in at least one light and one dark theme before calling it done — Purple and Obsidian are the widest-apart pair.",
+      "Do use color-mix(in srgb, var(--success-500) N%, ...) for status tints, at the established 8-15% for fills and 25-35% for borders.",
+      "Do reach for weight, uppercase, and 0.05em tracking when something small needs emphasis, and leave the size alone.",
+      "Do give every user-supplied string min-width: 0 + nowrap + ellipsis.",
+      "Do pair every disabled state with a title that says why.",
+      "Do use 100dvh and env(safe-area-inset-*) on anything full-height or bottom-anchored.",
+      "Do put new room features in both desktop-layout and mobile-layout.",
+      "Do keep interactive borders at 1.5px and passive ones at 1px."
+    ],
+    "donts": [
+      "Don’t write a raw hex value in a component. The avatar hash palette, #fff on accent fills, and the two overlay scrims are the only exceptions.",
+      "Don’t re-map Voice Green or Failure Red per theme, or borrow either for anything that isn’t a state report.",
+      "Don’t place more than one accent-filled element on a screen at rest.",
+      "Don’t add a shadow to convey importance — use a border and a tone. Shadows mean airborne or hovered.",
+      "Don’t invent a radius. Pick a rung on the ladder (4/6/8/10/12/14/20/pill).",
+      "Don’t design an overflow or virtualization affordance for the participant list; it is capped at 10 forever.",
+      "Don’t use 100vh, and don’t let bottom chrome ignore the safe-area inset.",
+      "Don’t introduce a third overlay scrim."
+    ]
+  }
+}
