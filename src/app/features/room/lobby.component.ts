@@ -319,8 +319,9 @@ import { AdminService } from '../../core/services/admin.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 44px;
-      height: 44px;
+      position: relative;
+      width: 34px;
+      height: 34px;
       padding: 0;
       background: var(--bg-surface);
       color: var(--text-secondary);
@@ -329,6 +330,19 @@ import { AdminService } from '../../core/services/admin.service';
       cursor: pointer;
       transition: var(--t-interactive);
       flex-shrink: 0;
+    }
+    /* Drawn at 34px, hit at 44px. */
+    .icon-btn::after,
+    .secondary-btn::after,
+    .primary-btn::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100%;
+      height: 44px;
+      min-width: 44px;
+      transform: translate(-50%, -50%);
     }
     
     @media (hover: hover) and (pointer: fine) {
@@ -381,13 +395,13 @@ import { AdminService } from '../../core/services/admin.service';
     /* ── Buttons ── */
     .primary-btn {
       display: inline-flex;
+      position: relative;
       align-items: center;
       gap: 0.3rem;
       background: var(--accent);
       color: var(--on-accent);
       border: none;
       padding: 0.5rem 0.875rem;
-      min-height: 44px;
       border-radius: 8px;
       cursor: pointer;
       font-weight: 600;
@@ -418,15 +432,13 @@ import { AdminService } from '../../core/services/admin.service';
     }
     .secondary-btn {
       display: inline-flex;
+      position: relative;
       align-items: center;
       gap: 0.3rem;
       background: var(--bg-surface);
       color: var(--text-primary);
       border: 1px solid var(--border);
       padding: 0.5rem 0.875rem;
-      min-height: 44px;
-      min-width: 44px;
-      justify-content: center;
       border-radius: 8px;
       cursor: pointer;
       font-weight: 600;

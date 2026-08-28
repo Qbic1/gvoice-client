@@ -197,7 +197,7 @@ import { ConnectionPillComponent } from '../../shared/components/connection-pill
     }
 
     .chat-rail {
-      width: 360px;
+      width: clamp(360px, 40%, 560px);
       flex-shrink: 0;
       background: var(--bg-surface);
       border-left: 1px solid var(--border);
@@ -205,9 +205,9 @@ import { ConnectionPillComponent } from '../../shared/components/connection-pill
       flex-direction: column;
       overflow: hidden;
     }
-    /* Below this the rail crowds the roster; chat narrows first. */
-    @media (max-width: 1180px) {
-      .chat-rail { width: 300px; }
+    /* Narrow screens: the rail gives up width before the roster does. */
+    @media (max-width: 1100px) {
+      .chat-rail { width: clamp(320px, 36%, 400px); }
       .roster-scroll { padding: 1rem; }
     }
 
