@@ -8,6 +8,7 @@ import { IconService } from '../../core/services/icon.service';
 import { ParticipantService } from '../../core/services/participant.service';
 import { WebRtcService } from '../../core/services/webrtc.service';
 import { ScreenShareOverlayComponent } from '../room/screen-share-overlay.component';
+import { ConnectionPillComponent } from '../../shared/components/connection-pill.component';
 
 type MobileTab = 'room' | 'chat' | 'settings';
 
@@ -20,7 +21,8 @@ type MobileTab = 'room' | 'chat' | 'settings';
     VoiceControlsComponent, 
     ChatComponent, 
     SettingsComponent,
-    ScreenShareOverlayComponent
+    ScreenShareOverlayComponent,
+    ConnectionPillComponent
   ],
   template: `
     <div class="room-container">
@@ -44,13 +46,11 @@ type MobileTab = 'room' | 'chat' | 'settings';
         <!-- Room tab: participants + voice controls -->
         <div class="tab-panel" [class.visible]="activeTab() === 'room'">
           <div class="participants-section">
-            <app-participant-list (onWatchStream)="watchStream($event)"></app-participant-list>
+            <app-participant-list (onWatchStream)="watchStream($event)" (onRejoin)="onRejoin.emit()"></app-participant-list>
           </div>
           <div class="voice-section">
             <app-voice-controls></app-voice-controls>
-            <div class="connection-pill">
-              <span class="dot"></span> Connected
-            </div>
+            <app-connection-pill></app-connection-pill>
           </div>
         </div>
 
@@ -226,33 +226,8 @@ type MobileTab = 'room' | 'chat' | 'settings';
       background: var(--bg-base);
     }
 
-    /* ── Connection pill ── */
-    .connection-pill {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--success-500);
-      align-self: center;
-      padding: 0.25rem 0.75rem;
-      background: color-mix(in srgb, var(--success-500) 12%, var(--bg-surface));
-      border-radius: 9999px;
-      border: 1px solid color-mix(in srgb, var(--success-500) 25%, transparent);
-    }
-    .dot {
-      width: 8px;
-      height: 8px;
-      min-width: 8px;
-      background: var(--success-500);
-      border-radius: 50%;
-      display: block;
-      animation: blink 2s infinite;
-    }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.3; }
-    }
+    /* The connection readout lives in app-connection-pill; it owns its own
+       styles so the two shells cannot drift apart. */
 
     /* ── Bottom nav ── */
     .bottom-nav {

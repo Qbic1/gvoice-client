@@ -107,13 +107,17 @@ import { DomSanitizer } from '@angular/platform-browser';
       color: var(--text-secondary);
       margin-bottom: 2rem;
     }
+    /* Tinted rather than solid: a solid fill needs its own foreground token to
+       stay readable once --error-500 adapts per theme, and the tint pattern is
+       what every other status surface in the app already uses. */
     .error-banner {
-      background: var(--error-500);
-      color: #fff;
+      background: color-mix(in srgb, var(--error-500) 12%, var(--bg-surface));
+      border: 1px solid color-mix(in srgb, var(--error-500) 30%, transparent);
+      color: var(--error-500);
       padding: 1rem;
       border-radius: 0.5rem;
       margin-bottom: 1rem;
-      font-weight: 500;
+      font-weight: 600;
     }
     form {
       display: flex;
@@ -163,7 +167,7 @@ import { DomSanitizer } from '@angular/platform-browser';
     button[type="submit"] {
       padding: 0.875rem 1.5rem;
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border: none;
       border-radius: 0.5rem;
       cursor: pointer;

@@ -1,4 +1,4 @@
-import { Component, inject, signal, Output, EventEmitter } from '@angular/core';
+import { Component, inject, signal, computed, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ParticipantService } from '../../core/services/participant.service';
@@ -15,8 +15,21 @@ import { ParticipantCardComponent } from './participant-card.component';
   template: `
     <div class="participant-list">
       <div class="list-header">
-        <h3>Room Users</h3>
+        <h3>Participants</h3>
         <span class="count">{{ participants().length }}</span>
+      </div>
+
+      <!-- Listen-only used to be a silent downgrade: the user was moved into it
+           with no message anywhere, and the only explanation lived in a title
+           attribute, which touch devices never render. This names the state and
+           carries the one action that resolves it. -->
+      <div *ngIf="isListenOnly()" class="listen-only-notice" role="status">
+        <span class="notice-icon" [innerHTML]="icons.BLOCK"></span>
+        <div class="notice-body">
+          <strong>Microphone blocked</strong>
+          <span>You can hear everyone, but nobody can hear you. Allow the microphone in your browser, then rejoin from the lobby.</span>
+        </div>
+        <button type="button" class="notice-action" (click)="onRejoin.emit()">Rejoin</button>
       </div>
       <div class="cards-grid">
         <app-participant-card
@@ -215,6 +228,69 @@ import { ParticipantCardComponent } from './participant-card.component';
       border-color: var(--accent);
       color: var(--accent);
     }
+
+    /* ── Listen-only notice ── */
+    .listen-only-notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.625rem;
+      margin-bottom: 0.75rem;
+      padding: 0.75rem;
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--error-500) 10%, var(--bg-surface));
+      border: 1px solid color-mix(in srgb, var(--error-500) 30%, transparent);
+    }
+    .notice-icon {
+      display: flex;
+      flex-shrink: 0;
+      color: var(--error-500);
+      margin-top: 1px;
+    }
+    ::ng-deep .notice-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+    .notice-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.125rem;
+      min-width: 0;
+      flex: 1;
+    }
+    .notice-body strong {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--error-500);
+    }
+    .notice-body span {
+      font-size: 0.75rem;
+      line-height: 1.45;
+      color: var(--text-secondary);
+    }
+    .notice-action {
+      flex-shrink: 0;
+      align-self: center;
+      padding: 0.375rem 0.75rem;
+      min-height: 44px;
+      border-radius: 8px;
+      border: 1.5px solid color-mix(in srgb, var(--error-500) 35%, transparent);
+      background: var(--bg-surface);
+      color: var(--error-500);
+      font-family: var(--font-family);
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.06s ease-out;
+    }
+    .notice-action:hover {
+      background: color-mix(in srgb, var(--error-500) 8%, var(--bg-surface));
+      border-color: var(--error-500);
+    }
+    .notice-action:active {
+      transform: scale(0.97);
+    }
   `]
 })
 export class ParticipantListComponent {
@@ -227,7 +303,11 @@ export class ParticipantListComponent {
   localConnectionId = this.signalrService.connectionId;
   selectedParticipant = signal<Participant | null>(null);
 
+  isListenOnly = computed(() => this.participantService.localParticipant()?.isListenOnly ?? false);
+
   @Output() onWatchStream = new EventEmitter<string>();
+  /** Leave the room so the user can re-grant the mic and come back with voice. */
+  @Output() onRejoin = new EventEmitter<void>();
 
   openVolumeControl(participant: Participant) {
     if (participant.connectionId === this.localConnectionId()) return;

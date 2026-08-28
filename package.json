@@ -7,7 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:gvoice-client": "node dist/gvoice-client/server/server.mjs"
+    "serve:ssr:gvoice-client": "node dist/gvoice-client/server/server.mjs",
+    "check:contrast": "node scripts/check-contrast.mjs"
   },
   "private": true,
   "packageManager": "npm@11.9.0",

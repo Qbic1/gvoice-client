@@ -116,7 +116,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
     /* Local bubble */
     .local-message {
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border-color: transparent;
       border-bottom-left-radius: 12px;
       border-bottom-right-radius: 2px;
@@ -163,7 +163,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       text-decoration: underline;
     }
     .local-message ::ng-deep .chat-link {
-      color: #fff;
+      color: var(--on-accent);
       opacity: 0.85;
     }
 
@@ -199,7 +199,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       width: 40px;
       height: 40px;
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border: none;
       border-radius: 8px;
       cursor: pointer;

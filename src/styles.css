@@ -39,9 +39,10 @@
   --gray-800: #1f2937;
   --gray-900: #111827;
 
-  /* Status — never theme-dependent */
-  --success-500: #10b981;
-  --error-500:   #ef4444;
+  /* Status colors are defined per theme below. A single fixed pair cannot
+     clear 4.5:1 on both a white and a near-black surface — the two constraints
+     are arithmetically incompatible — so the ROLE stays constant across themes
+     while the value adapts to each theme's ground. */
 
   /* Typography & shape */
   --font-family:   'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -64,11 +65,14 @@
   --bg-muted:       #f3e8ff;
   --text-primary:   #3b0764;
   --text-secondary: #7c3aed;
-  --text-muted:     #a78bfa;
-  --border:         #e9d5ff;
+  --text-muted:     #7b61c3;
+  --border:         #9181a2;
   --accent:         #7c3aed;
   --accent-hover:   #6d28d9;
   --accent-subtle:  #f3e8ff;
+  --success-500: #047857;
+  --error-500: #b91c1c;
+  --on-accent:      #ffffff;
 }
 
 /* 2. Dark Purple — deep space violet */
@@ -78,11 +82,14 @@
   --bg-muted:       #2d1f4e;
   --text-primary:   #f5f3ff;
   --text-secondary: #c4b5fd;
-  --text-muted:     #7c3aed;
-  --border:         #2d1f4e;
+  --text-muted:     #9a7df5;
+  --border:         #6b5f92;
   --accent:         #a78bfa;
   --accent-hover:   #c4b5fd;
   --accent-subtle:  #2d1f4e;
+  --success-500: #34d399;
+  --error-500: #f87171;
+  --on-accent:      #1b1030;
 }
 
 /* 3. Ocean — crisp teal & cyan light */
@@ -91,12 +98,15 @@
   --bg-surface:     #ffffff;
   --bg-muted:       #ccfbf1;
   --text-primary:   #134e4a;
-  --text-secondary: #0d9488;
-  --text-muted:     #5eead4;
-  --border:         #99f6e4;
-  --accent:         #0d9488;
-  --accent-hover:   #0f766e;
+  --text-secondary: #0d7d72;
+  --text-muted:     #0f766e;
+  --border:         #4d988b;
+  --accent:         #0f766e;
+  --accent-hover:   #115e59;
   --accent-subtle:  #ccfbf1;
+  --success-500: #047857;
+  --error-500: #b91c1c;
+  --on-accent:      #ffffff;
 }
 
 /* 4. Midnight Ocean — deep navy with teal glow */
@@ -106,11 +116,14 @@
   --bg-muted:       #0d2d45;
   --text-primary:   #e0f2fe;
   --text-secondary: #38bdf8;
-  --text-muted:     #0ea5e9;
-  --border:         #0d2d45;
+  --text-muted:     #4bb6e8;
+  --border:         #4d7f9b;
   --accent:         #06b6d4;
   --accent-hover:   #22d3ee;
   --accent-subtle:  #0d2d45;
+  --success-500: #34d399;
+  --error-500: #f87171;
+  --on-accent:      #032630;
 }
 
 /* 5. Rose — warm blush pink light */
@@ -119,12 +132,15 @@
   --bg-surface:     #ffffff;
   --bg-muted:       #ffe4e6;
   --text-primary:   #4c0519;
-  --text-secondary: #e11d48;
-  --text-muted:     #fb7185;
-  --border:         #fecdd3;
+  --text-secondary: #d81a44;
+  --text-muted:     #bf455a;
+  --border:         #a37d82;
   --accent:         #e11d48;
   --accent-hover:   #be123c;
   --accent-subtle:  #ffe4e6;
+  --success-500: #047857;
+  --error-500: #b91c1c;
+  --on-accent:      #ffffff;
 }
 
 /* 6. Noir — dark charcoal with rose accent */
@@ -134,11 +150,14 @@
   --bg-muted:       #262626;
   --text-primary:   #fafafa;
   --text-secondary: #a3a3a3;
-  --text-muted:     #525252;
-  --border:         #2e2e2e;
+  --text-muted:     #8f8f8f;
+  --border:         #6b6b6b;
   --accent:         #f43f5e;
   --accent-hover:   #fb7185;
   --accent-subtle:  #2a1520;
+  --success-500: #34d399;
+  --error-500: #f87171;
+  --on-accent:      #2a0710;
 }
 
 /* 7. Amber — warm golden sand light */
@@ -147,12 +166,15 @@
   --bg-surface:     #ffffff;
   --bg-muted:       #fef3c7;
   --text-primary:   #451a03;
-  --text-secondary: #d97706;
-  --text-muted:     #fbbf24;
-  --border:         #fde68a;
-  --accent:         #d97706;
-  --accent-hover:   #b45309;
+  --text-secondary: #b45309;
+  --text-muted:     #a1670a;
+  --border:         #9e8c43;
+  --accent:         #b45309;
+  --accent-hover:   #92400e;
   --accent-subtle:  #fef3c7;
+  --success-500: #047857;
+  --error-500: #b91c1c;
+  --on-accent:      #ffffff;
 }
 
 /* 8. Obsidian — dark slate with amber glow */
@@ -161,12 +183,15 @@
   --bg-surface:     #13131a;
   --bg-muted:       #1e1e2a;
   --text-primary:   #f8f8f2;
-  --text-secondary: #a89984;
-  --text-muted:     #665c54;
-  --border:         #282828;
+  --text-secondary: #c9b99f;
+  --text-muted:     #9a9088;
+  --border:         #6a6a75;
   --accent:         #ffb347;
   --accent-hover:   #ffd27f;
   --accent-subtle:  #2a2010;
+  --success-500: #34d399;
+  --error-500: #f87171;
+  --on-accent:      #2b1c04;
 }
 
 /* ── Apply semantic tokens to body ── */

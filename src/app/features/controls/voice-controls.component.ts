@@ -28,7 +28,7 @@ import { LayoutService } from '../../core/services/layout.service';
           [class.ptt-active]="isPttMode()"
           [disabled]="isListenOnly()"
           class="control-btn ptt-toggle"
-          [title]="isPttMode() ? 'Disable PTT' : 'Enable PTT'"
+          [title]="isListenOnly() ? 'Microphone unavailable' : (isPttMode() ? 'Disable PTT' : 'Enable PTT')"
         >
           <span class="icon ptt-text">PTT</span>
         </button>
@@ -58,8 +58,10 @@ import { LayoutService } from '../../core/services/layout.service';
         </button>
       </div>
 
-      <div class="mode-label mt-2" [class.ptt]="isPttMode()">
-        {{ isPttMode() ? 'PTT Mode' : 'Open Mic' }}
+      <div class="mode-label mt-2"
+           [class.ptt]="isPttMode() && !isListenOnly()"
+           [class.listen-only]="isListenOnly()">
+        {{ modeLabel() }}
       </div>
     </div>
   `,
@@ -144,6 +146,11 @@ import { LayoutService } from '../../core/services/layout.service';
     .mode-label.ptt {
       color: var(--text-primary);
     }
+    /* Listen-only is a constraint, not a mode: it reads in the failure color
+       so "you cannot be heard" is legible without reading the words. */
+    .mode-label.listen-only {
+      color: var(--error-500);
+    }
 
     .mt-2 { margin-top: 0.5rem; }
     .mt-6 { margin-top: 1.5rem; }
@@ -208,6 +215,12 @@ export class VoiceControlsComponent {
   isListenOnly = computed(() => this.participantService.localParticipant()?.isListenOnly ?? false);
 
   isMobile = this.layoutService.isMobile;
+
+  /** Listen-only outranks PTT: a user with no microphone is in neither mode. */
+  modeLabel = computed(() => {
+    if (this.isListenOnly()) return 'Listen-only';
+    return this.isPttMode() ? 'PTT Mode' : 'Open Mic';
+  });
 
   toggleMute()     { this.hapticFeedback(); this.webrtcService.toggleMute(); }
   togglePttMode()  { this.hapticFeedback(); this.webrtcService.togglePttMode(); }

@@ -105,9 +105,13 @@ import { IconService } from '../../core/services/icon.service';
       background: rgba(255, 255, 255, 0.25);
       transform: scale(1.05);
     }
+    /* The overlay draws its own near-black ground regardless of theme, so this
+       one control is pinned rather than themed: --error-500 lightens in the
+       dark themes, and white-on-light-red would drop to ~2.5:1 here. */
     .close-btn:hover {
-      background: var(--error-500);
-      border-color: var(--error-500);
+      background: #b91c1c;
+      border-color: #b91c1c;
+      color: #ffffff;
     }
     @media (max-width: 768px) {
       .overlay-actions {

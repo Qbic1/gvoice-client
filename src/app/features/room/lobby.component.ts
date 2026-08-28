@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import { avatarColor } from '../../shared/avatar-palette';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -266,7 +267,7 @@ import { AdminService } from '../../core/services/admin.service';
       height: 34px;
       border-radius: 8px;
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -369,7 +370,7 @@ import { AdminService } from '../../core/services/admin.service';
       align-items: center;
       gap: 0.3rem;
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border: none;
       padding: 0.5rem 0.875rem;
       border-radius: 8px;
@@ -494,7 +495,7 @@ import { AdminService } from '../../core/services/admin.service';
     }
     .room-card:hover .join-btn, .room-card:active .join-btn {
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border-color: var(--accent);
     }
     @media (min-width: 600px) {
@@ -911,12 +912,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
   }
 
   getRoomColor(name: string): string {
-    const colors = ['#6366f1', '#ec4899', '#8b5cf6', '#0d9488', '#f59e0b', '#3b82f6', '#e11d48', '#10b981'];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
+    return avatarColor(name);
   }
 
   openAdminLogin() {

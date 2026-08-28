@@ -185,7 +185,7 @@ import { Subscription } from 'rxjs';
     .primary-btn {
       padding: 0.75rem 1.5rem;
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border: none;
       border-radius: 0.5rem;
       font-weight: 600;

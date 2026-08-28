@@ -2,6 +2,7 @@ import { Component, input, output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Participant } from '../../core/models/participant.model';
 import { IconService } from '../../core/services/icon.service';
+import { avatarColor } from '../../shared/avatar-palette';
 
 @Component({
   selector: 'app-participant-card',
@@ -129,7 +130,7 @@ import { IconService } from '../../core/services/icon.service';
     }
     .stream-badge:hover {
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
     }
     .stream-badge.disabled {
       cursor: default;
@@ -194,11 +195,6 @@ export class ParticipantCardComponent {
   icons = inject(IconService);
 
   getAvatarColor(name: string): string {
-    const colors = ['#6366f1', '#ec4899', '#8b5cf6', '#f59e0b', '#10b981', '#3b82f6'];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
+    return avatarColor(name);
   }
 }

@@ -8,6 +8,7 @@ import { ParticipantService } from '../../core/services/participant.service';
 import { DisplayNameService } from '../../core/services/display-name.service';
 import { WebRtcService } from '../../core/services/webrtc.service';
 import { ScreenShareOverlayComponent } from '../room/screen-share-overlay.component';
+import { ConnectionPillComponent } from '../../shared/components/connection-pill.component';
 
 @Component({
   selector: 'app-desktop-layout',
@@ -16,8 +17,9 @@ import { ScreenShareOverlayComponent } from '../room/screen-share-overlay.compon
     CommonModule, 
     ParticipantListComponent, 
     VoiceControlsComponent, 
-    ChatComponent, 
-    ScreenShareOverlayComponent
+    ChatComponent,
+    ScreenShareOverlayComponent,
+    ConnectionPillComponent
   ],
   template: `
     <div class="room-container">
@@ -52,13 +54,11 @@ import { ScreenShareOverlayComponent } from '../room/screen-share-overlay.compon
       <div class="main-layout">
         <aside class="sidebar">
           <div class="sidebar-section">
-            <app-participant-list (onWatchStream)="watchStream($event)"></app-participant-list>
+            <app-participant-list (onWatchStream)="watchStream($event)" (onRejoin)="onRejoin.emit()"></app-participant-list>
           </div>
           <div class="sidebar-footer">
             <app-voice-controls></app-voice-controls>
-            <div class="connection-pill">
-              <span class="dot"></span> Connected
-            </div>
+            <app-connection-pill></app-connection-pill>
           </div>
         </aside>
 
@@ -150,7 +150,7 @@ import { ScreenShareOverlayComponent } from '../room/screen-share-overlay.compon
     }
     .icon-btn.active {
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border-color: var(--accent);
     }
     .icon-btn:disabled {
@@ -194,34 +194,8 @@ import { ScreenShareOverlayComponent } from '../room/screen-share-overlay.compon
       background: var(--bg-base);
     }
 
-    /* ── Connection pill ── */
-    .connection-pill {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--success-500);
-      align-self: center;
-      padding: 0.25rem 0.75rem;
-      background: color-mix(in srgb, var(--success-500) 15%, var(--bg-surface));
-      border-radius: 9999px;
-      border: 1px solid color-mix(in srgb, var(--success-500) 25%, transparent);
-    }
-    .dot {
-      width: 8px;          /* was 6px — slightly bigger so it's not invisible */
-      height: 8px;
-      min-width: 8px;      /* prevent flex from squishing it */
-      min-height: 8px;
-      background: var(--success-500);
-      border-radius: 50%;
-      display: block;      /* ensure it renders as a block, not inline */
-      animation: blink 2s infinite;
-    }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.4; }
-    }
+    /* The connection readout lives in app-connection-pill; it owns its own
+       styles so the two shells cannot drift apart. */
   `]
 })
 export class DesktopLayoutComponent {

@@ -670,7 +670,7 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
     }
     .btn-primary {
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border: none;
       padding: 0.625rem 1.5rem;
       border-radius: 8px;
