@@ -38,14 +38,15 @@ import { ConnectionPillComponent } from '../../shared/components/connection-pill
             [class.active]="isLocalSharing()" 
             [disabled]="isAnyScreenSharing() && !isLocalSharing()"
             (click)="toggleScreenShare()" 
+            [attr.aria-label]="isLocalSharing() ? 'Stop sharing your screen' : 'Share your screen'"
             [title]="isLocalSharing() ? 'Stop Sharing' : 'Share Screen'">
             <span class="icon" [innerHTML]="icons.SCREEN_SHARE"></span>
           </button>
 
-          <button class="icon-btn" (click)="onRejoin.emit()" title="Back to Lobby">
+          <button type="button" class="icon-btn" (click)="onRejoin.emit()" aria-label="Back to lobby" title="Back to Lobby">
             <span class="icon" [innerHTML]="icons.HOME"></span>
           </button>
-          <button class="icon-btn" (click)="onShowSettings.emit()" title="Settings">
+          <button type="button" class="icon-btn" (click)="onShowSettings.emit()" aria-label="Settings" title="Settings">
             <span class="icon" [innerHTML]="icons.SETTINGS"></span>
           </button>
         </div>
@@ -133,8 +134,8 @@ import { ConnectionPillComponent } from '../../shared/components/connection-pill
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       padding: 0;
       background: var(--bg-base);
       color: var(--text-secondary);

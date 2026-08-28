@@ -33,6 +33,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       <form (submit)="sendMessage($event)" class="chat-input-form">
         <input
           type="text"
+          aria-label="Message"
           [(ngModel)]="messageInput"
           name="message"
           [placeholder]="isConnected() ? 'Message or paste image...' : 'Reconnecting — messages can\\'t be sent'"
@@ -40,7 +41,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
           [disabled]="!isConnected()"
           (paste)="onPaste($event)"
         />
-        <button type="submit" [disabled]="!messageInput.trim() || !isConnected()">
+        <button type="submit" aria-label="Send message" [disabled]="!messageInput.trim() || !isConnected()">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
           </svg>
@@ -49,7 +50,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
 
       <!-- Lightbox -->
       <div *ngIf="lightboxImage()" class="lightbox-overlay" (click)="closeLightbox()">
-        <button class="close-lightbox" (click)="closeLightbox()">×</button>
+        <button type="button" class="close-lightbox" aria-label="Close image" (click)="closeLightbox()">×</button>
         <img [src]="lightboxImage()" (click)="$event.stopPropagation()" alt="Full size image" />
       </div>
     </div>
@@ -189,15 +190,14 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       color: var(--text-muted);
     }
     .chat-input-form input:focus {
-      outline: none;
       border-color: var(--accent);
     }
     .chat-input-form button {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       background: var(--accent);
       color: var(--on-accent);
       border: none;

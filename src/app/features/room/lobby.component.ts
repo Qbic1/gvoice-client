@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal , HostListener } from '@angular/core';
 import { avatarColor } from '../../shared/avatar-palette';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -30,7 +30,7 @@ import { AdminService } from '../../core/services/admin.service';
           </div>
 
           <div class="header-right">
-            <button class="icon-btn" (click)="refresh()" [disabled]="isRefreshing()" title="Refresh rooms">
+            <button type="button" class="icon-btn" (click)="refresh()" [disabled]="isRefreshing()" aria-label="Refresh rooms" title="Refresh rooms">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="23 4 23 10 17 10"/>
                 <polyline points="1 20 1 14 7 14"/>
@@ -87,13 +87,15 @@ import { AdminService } from '../../core/services/admin.service';
           <div class="grid" *ngIf="rooms().length > 0">
             <div *ngFor="let room of rooms()" 
                  class="room-card" 
-                 [class.active-card]="activeRoomId() === room.id"
-                 [routerLink]="['/room', room.id]">
-              <div class="room-avatar" [style.background]="getRoomColor(room.name)">
+                 [class.active-card]="activeRoomId() === room.id">
+              <div class="room-avatar" aria-hidden="true" [style.background]="getRoomColor(room.name)">
                 {{ room.name.charAt(0).toUpperCase() }}
               </div>
               <div class="room-info">
-                <h3>{{ room.name }}</h3>
+                <h3><a class="room-link"
+                       [routerLink]="['/room', room.id]"
+                       [attr.aria-label]="'Join ' + room.name + ', ' + room.participantCount + ' of 10 people'"
+                    >{{ room.name }}</a></h3>
                 <div class="room-meta">
                   <div class="capacity-bar">
                     <div
@@ -110,7 +112,10 @@ import { AdminService } from '../../core/services/admin.service';
 
               <div class="room-actions">
                 <button class="info-btn" 
+                        type="button"
                         (click)="toggleParticipants($event, room.id)"
+                        [attr.aria-expanded]="activeRoomId() === room.id"
+                        [attr.aria-label]="'Who is in ' + room.name"
                         [class.active]="activeRoomId() === room.id">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
@@ -314,8 +319,8 @@ import { AdminService } from '../../core/services/admin.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
-      height: 36px;
+      width: 44px;
+      height: 44px;
       padding: 0;
       background: var(--bg-surface);
       color: var(--text-secondary);
@@ -373,6 +378,7 @@ import { AdminService } from '../../core/services/admin.service';
       color: var(--on-accent);
       border: none;
       padding: 0.5rem 0.875rem;
+      min-height: 44px;
       border-radius: 8px;
       cursor: pointer;
       font-weight: 600;
@@ -400,6 +406,9 @@ import { AdminService } from '../../core/services/admin.service';
       color: var(--text-primary);
       border: 1px solid var(--border);
       padding: 0.5rem 0.875rem;
+      min-height: 44px;
+      min-width: 44px;
+      justify-content: center;
       border-radius: 8px;
       cursor: pointer;
       font-weight: 600;
@@ -514,10 +523,28 @@ import { AdminService } from '../../core/services/admin.service';
       flex-shrink: 0;
     }
 
+    /* The link covers the whole card, so the card stays one target while the
+       info button remains a separate, reachable control above it. */
+    .room-link {
+      color: inherit;
+      text-decoration: none;
+      outline-offset: 4px;
+    }
+    .room-link::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+    }
+    .room-actions {
+      position: relative;
+      z-index: 1;
+    }
+
     .info-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
       border: 1.5px solid var(--border);
       background: var(--bg-base);
       color: var(--text-muted);
@@ -913,6 +940,12 @@ export class LobbyComponent implements OnInit, OnDestroy {
 
   getRoomColor(name: string): string {
     return avatarColor(name);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    if (this.activeRoomId()) { this.activeRoomId.set(null); this.activeParticipants.set([]); return; }
+    if (this.showAdminLogin() || this.showCreateRoom()) this.closeModals();
   }
 
   openAdminLogin() {

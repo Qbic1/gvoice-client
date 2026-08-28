@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, inject, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IconService } from '../../core/services/icon.service';
 
@@ -133,6 +133,10 @@ import { IconService } from '../../core/services/icon.service';
   `]
 })
 export class ScreenShareOverlayComponent {
+  /** A full-screen overlay must be dismissible from the keyboard. */
+  @HostListener('document:keydown.escape')
+  onEscape() { this.closeOverlay.emit(); }
+
   icons = inject(IconService);
   
   @Input({ required: true }) stream!: MediaStream;

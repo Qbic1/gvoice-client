@@ -206,6 +206,25 @@ body {
   box-sizing: border-box;
 }
 
+/* ── Focus ──
+   The app shipped with zero authored focus styles: every visible ring was the
+   browser default, and on some controls that default was removed outright with
+   `outline: none` and nothing put back. One rule, from the palette, so the
+   indicator is part of the design rather than an accident of the UA stylesheet.
+   `outline-offset` keeps the ring clear of the control's own border, and
+   `border-radius: inherit` makes it follow the radius ladder. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+/* Inputs draw their ring tight to the field, which already reads as a boundary. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline-offset: 0;
+}
+
 .app-background * {
   animation: none !important;
   transition: none !important;

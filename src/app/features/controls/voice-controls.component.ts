@@ -18,6 +18,8 @@ import { LayoutService } from '../../core/services/layout.service';
           [class.muted]="isMuted()" 
           [disabled]="isListenOnly() || (isPttMode() && !isMobile())"
           class="control-btn"
+          [attr.aria-label]="isListenOnly() ? 'Microphone unavailable' : (isPttMode() ? 'Push-to-talk is active' : (isMuted() ? 'Unmute microphone' : 'Mute microphone'))"
+          [attr.aria-pressed]="isMuted()"
           [title]="isListenOnly() ? 'Microphone unavailable' : (isPttMode() ? 'PTT Active' : (isMuted() ? 'Unmute' : 'Mute'))"
         >
           <span class="icon" [innerHTML]="getMicIcon()"></span>
@@ -28,6 +30,8 @@ import { LayoutService } from '../../core/services/layout.service';
           [class.ptt-active]="isPttMode()"
           [disabled]="isListenOnly()"
           class="control-btn ptt-toggle"
+          [attr.aria-label]="isListenOnly() ? 'Microphone unavailable' : (isPttMode() ? 'Turn off push-to-talk' : 'Turn on push-to-talk')"
+          [attr.aria-pressed]="isPttMode()"
           [title]="isListenOnly() ? 'Microphone unavailable' : (isPttMode() ? 'Disable PTT' : 'Enable PTT')"
         >
           <span class="icon ptt-text">PTT</span>
@@ -38,6 +42,8 @@ import { LayoutService } from '../../core/services/layout.service';
           [class.active]="isDeafened()"
           [class.muted]="isDeafened()"
           class="control-btn"
+          [attr.aria-label]="isDeafened() ? 'Turn incoming audio back on' : 'Mute all incoming audio'"
+          [attr.aria-pressed]="isDeafened()"
           [title]="isDeafened() ? 'Undeafen' : 'Deafen'"
         >
           <span class="icon" [innerHTML]="getDeafenIcon()"></span>
@@ -49,6 +55,8 @@ import { LayoutService } from '../../core/services/layout.service';
         <button 
           (click)="toggleMobilePtt()" 
           [class.transmitting]="isPttActive()"
+          [attr.aria-label]="isPttActive() ? 'Transmitting — tap to stop' : 'Tap to talk'"
+          [attr.aria-pressed]="isPttActive()"
           class="mobile-ptt-btn"
         >
           <div class="inner-circle">

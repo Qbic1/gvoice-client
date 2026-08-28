@@ -289,7 +289,24 @@ export class App implements OnInit, OnDestroy {
       target.tagName === 'INPUT' ||
       target.tagName === 'TEXTAREA' ||
       target.isContentEditable ||
-      this.showSettings()
+      this.showSettings() ||
+      this.wouldStealActivation(event, target)
     );
+  }
+
+  /**
+   * PTT defaults to Space, and the global handler calls preventDefault() on it
+   * while PTT mode is on. With focus on a button or link that swallowed the
+   * key's native activation: a keyboard user could not press any control in the
+   * app while PTT was enabled. Native activation wins — the transmit key is
+   * rebindable, the ability to operate the interface is not.
+   */
+  private wouldStealActivation(event: KeyboardEvent, target: HTMLElement): boolean {
+    if (event.code !== 'Space' && event.code !== 'Enter' && event.code !== 'NumpadEnter') return false;
+    const tag = target.tagName;
+    if (tag === 'BUTTON' || tag === 'SELECT' || tag === 'SUMMARY') return true;
+    if (tag === 'A' && target.hasAttribute('href')) return true;
+    const role = target.getAttribute('role');
+    return role === 'button' || role === 'link' || role === 'checkbox' || role === 'tab';
   }
 }

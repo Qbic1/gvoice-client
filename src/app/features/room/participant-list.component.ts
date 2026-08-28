@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, Output, EventEmitter } from '@angular/core';
+import { Component, inject, signal, computed, Output, EventEmitter, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ParticipantService } from '../../core/services/participant.service';
@@ -46,7 +46,7 @@ import { ParticipantCardComponent } from './participant-card.component';
         <div class="volume-card" (click)="$event.stopPropagation()">
           <div class="vol-header">
             <h4>User Volume: {{ selectedParticipant()?.displayName }}</h4>
-            <button class="close-x" (click)="closeVolumeControl()">×</button>
+            <button type="button" class="close-x" aria-label="Close volume control" (click)="closeVolumeControl()">×</button>
           </div>
           
           <div class="vol-body">
@@ -171,7 +171,11 @@ import { ParticipantCardComponent } from './participant-card.component';
       background: var(--bg-muted);
       border-radius: 3px;
       appearance: none;
-      outline: none;
+    }
+    /* Offset clears the thumb, which overhangs the 6px track. */
+    .vol-slider:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 6px;
     }
     .vol-slider::-webkit-slider-thumb {
       appearance: none;
@@ -308,6 +312,11 @@ export class ParticipantListComponent {
   @Output() onWatchStream = new EventEmitter<string>();
   /** Leave the room so the user can re-grant the mic and come back with voice. */
   @Output() onRejoin = new EventEmitter<void>();
+
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    if (this.selectedParticipant()) this.closeVolumeControl();
+  }
 
   openVolumeControl(participant: Participant) {
     if (participant.connectionId === this.localConnectionId()) return;

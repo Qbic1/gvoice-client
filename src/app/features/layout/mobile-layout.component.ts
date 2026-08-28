@@ -34,7 +34,7 @@ type MobileTab = 'room' | 'chat' | 'settings';
           <h1 class="room-title">{{ roomName() }}</h1>
         </div>
         <div class="header-actions">
-          <button class="icon-btn" (click)="onRejoin.emit()" title="Back to Lobby">
+          <button type="button" class="icon-btn" (click)="onRejoin.emit()" aria-label="Back to lobby" title="Back to Lobby">
             <span class="icon" [innerHTML]="icons.HOME"></span>
           </button>
         </div>
@@ -158,8 +158,8 @@ type MobileTab = 'room' | 'chat' | 'settings';
     }
     .header-actions { display: flex; gap: 0.5rem; }
     .icon-btn {
-      width: 36px;
-      height: 36px;
+      width: 44px;
+      height: 44px;
       padding: 0;
       display: flex;
       align-items: center;

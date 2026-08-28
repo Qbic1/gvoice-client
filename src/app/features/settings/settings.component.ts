@@ -18,7 +18,7 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
         <!-- Header -->
         <header class="modal-header" *ngIf="!isInline">
           <h3>Voice Settings</h3>
-          <button class="close-btn" (click)="close()">×</button>
+          <button type="button" class="close-btn" aria-label="Close settings" (click)="close()">×</button>
         </header>
 
         <!-- Tabs -->
@@ -502,8 +502,12 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
       border-radius: 3px;
       appearance: none;
       background: var(--bg-muted);
-      outline: none;
       cursor: pointer;
+    }
+    /* Offset clears the thumb, which overhangs the 6px track. */
+    input[type="range"]:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 6px;
     }
     input[type="range"]::-webkit-slider-thumb {
       appearance: none;
@@ -618,7 +622,6 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
       font-size: 0.9rem;
       font-weight: 600;
       cursor: pointer;
-      outline: none;
       transition: all 0.2s;
     }
     .device-select:focus {
@@ -898,6 +901,13 @@ export class SettingsComponent implements AfterViewInit, OnDestroy, OnInit {
       if (event.key === 'Escape') { this.isRecording.set(false); return; }
       this.settingsService.savePttKey(event.code);
       this.isRecording.set(false);
+      return;
+    }
+    // As a modal, Escape must dismiss it. Inline (the mobile Settings tab) is
+    // not a modal — it is the panel itself — so Escape does nothing there.
+    if (event.key === 'Escape' && !this.isInline) {
+      event.preventDefault();
+      this.close();
     }
   }
 
