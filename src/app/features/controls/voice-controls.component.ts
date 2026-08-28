@@ -100,14 +100,20 @@ import { LayoutService } from '../../core/services/layout.service';
       border-radius: 8px;
       background: var(--bg-surface);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
       color: var(--text-secondary);
       box-shadow: var(--shadow-sm);
     }
-    .control-btn:hover:not(:disabled) {
-      background: var(--bg-base);
-      color: var(--text-primary);
-      transform: translateY(-1px);
+        @media (hover: hover) and (pointer: fine) {
+      .control-btn:hover:not(:disabled) {
+        background: var(--bg-base);
+        color: var(--text-primary);
+        transform: translateY(-1px);
+      }
+    }
+    .control-btn:active:not(:disabled) {
+      transform: scale(0.96);
+      transition: var(--t-press);
     }
 
     /* ── States ── */
@@ -122,9 +128,11 @@ import { LayoutService } from '../../core/services/layout.service';
       background: var(--text-primary);
       color: var(--bg-surface);
     }
-    .ptt-toggle.ptt-active:hover:not(:disabled) {
-      background: var(--text-secondary);
-      color: var(--bg-surface);
+        @media (hover: hover) and (pointer: fine) {
+      .ptt-toggle.ptt-active:hover:not(:disabled) {
+        background: var(--text-secondary);
+        color: var(--bg-surface);
+      }
     }
     .control-btn:disabled {
       opacity: 0.5;
@@ -180,7 +188,10 @@ import { LayoutService } from '../../core/services/layout.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                  border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                  transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                  box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: var(--shadow-md);
     }
     .inner-circle {
@@ -193,6 +204,10 @@ import { LayoutService } from '../../core/services/layout.service';
       justify-content: center;
       gap: 8px;
       color: var(--text-muted);
+    }
+    .mobile-ptt-btn:active {
+      transform: scale(0.93);
+      transition: var(--t-press);
     }
     .mobile-ptt-btn.transmitting {
       background: var(--text-primary);

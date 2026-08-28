@@ -156,7 +156,10 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       object-fit: cover;
       transition: opacity 0.2s;
     }
-    .image-bubble img:hover { opacity: 0.9; }
+    
+    @media (hover: hover) and (pointer: fine) {
+        .image-bubble img:hover { opacity: 0.9; }
+    }
 
     /* ── Links ── */
     ::ng-deep .chat-link {
@@ -206,8 +209,11 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       transition: background 0.2s;
       flex-shrink: 0;
     }
-    .chat-input-form button:hover:not(:disabled) {
-      background: var(--accent-hover);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .chat-input-form button:hover:not(:disabled) {
+        background: var(--accent-hover);
+      }
     }
     .chat-input-form button:disabled {
       background: var(--bg-muted);
@@ -246,7 +252,10 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       opacity: 0.8;
       transition: opacity 0.15s;
     }
-    .close-lightbox:hover { opacity: 1; }
+    
+    @media (hover: hover) and (pointer: fine) {
+        .close-lightbox:hover { opacity: 1; }
+    }
 
     @keyframes fadeIn {
       from { opacity: 0; }

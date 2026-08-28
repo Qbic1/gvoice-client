@@ -122,10 +122,13 @@ import { Subscription } from 'rxjs';
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
-    .reconnect-cancel:hover {
-      background: var(--accent-subtle);
-      border-color: var(--accent);
-      color: var(--accent);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .reconnect-cancel:hover {
+        background: var(--accent-subtle);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
     }
     .reconnect-dot {
       width: 8px;
@@ -191,11 +194,14 @@ import { Subscription } from 'rxjs';
       font-weight: 600;
       font-size: 0.875rem;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
     }
-    .primary-btn:hover {
-      background: var(--accent-hover);
-      transform: translateY(-1px);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .primary-btn:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+      }
     }
   `]
 })

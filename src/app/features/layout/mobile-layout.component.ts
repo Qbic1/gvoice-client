@@ -169,12 +169,15 @@ type MobileTab = 'room' | 'chat' | 'settings';
       border-radius: 0.5rem;
       color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
     }
-    .icon-btn:hover {
-      background: var(--bg-muted);
-      color: var(--text-primary);
-      border-color: var(--accent);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .icon-btn:hover {
+        background: var(--bg-muted);
+        color: var(--text-primary);
+        border-color: var(--accent);
+      }
     }
     .icon { display: flex; align-items: center; justify-content: center; }
 
@@ -237,6 +240,10 @@ type MobileTab = 'room' | 'chat' | 'settings';
       border-top: 1px solid var(--border);
       padding-bottom: env(safe-area-inset-bottom);
     }
+    .nav-btn:active {
+      transform: scale(0.96);
+      transition: var(--t-press);
+    }
     .nav-btn {
       flex: 1;
       display: flex;
@@ -253,7 +260,7 @@ type MobileTab = 'room' | 'chat' | 'settings';
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      transition: all 0.15s;
+      transition: var(--t-interactive-fast);
       font-family: var(--font-family);
       position: relative;
     }
@@ -275,9 +282,12 @@ type MobileTab = 'room' | 'chat' | 'settings';
     .nav-btn.active::before {
       opacity: 1;
     }
-    .nav-btn:hover:not(.active) {
-      color: var(--text-secondary);
-      background: var(--bg-muted);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .nav-btn:hover:not(.active) {
+        color: var(--text-secondary);
+        background: var(--bg-muted);
+      }
     }
   `]
 })

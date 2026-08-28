@@ -161,7 +161,10 @@ import { ParticipantCardComponent } from './participant-card.component';
       line-height: 1;
       transition: color 0.15s;
     }
-    .close-x:hover { color: var(--text-primary); }
+    
+    @media (hover: hover) and (pointer: fine) {
+        .close-x:hover { color: var(--text-primary); }
+    }
 
     .vol-body { padding: 1.5rem; }
     .slider-container { margin-bottom: 1.5rem; }
@@ -225,12 +228,15 @@ import { ParticipantCardComponent } from './participant-card.component';
       font-weight: 600;
       color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.15s;
+      transition: var(--t-interactive-fast);
     }
-    .reset-btn:hover {
-      background: var(--bg-base);
-      border-color: var(--accent);
-      color: var(--accent);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .reset-btn:hover {
+        background: var(--bg-base);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
     }
 
     /* ── Listen-only notice ── */
@@ -288,9 +294,12 @@ import { ParticipantCardComponent } from './participant-card.component';
       cursor: pointer;
       transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.06s ease-out;
     }
-    .notice-action:hover {
-      background: color-mix(in srgb, var(--error-500) 8%, var(--bg-surface));
-      border-color: var(--error-500);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .notice-action:hover {
+        background: color-mix(in srgb, var(--error-500) 8%, var(--bg-surface));
+        border-color: var(--error-500);
+      }
     }
     .notice-action:active {
       transform: scale(0.97);

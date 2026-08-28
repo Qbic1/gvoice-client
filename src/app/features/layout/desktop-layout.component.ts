@@ -142,12 +142,15 @@ import { ConnectionPillComponent } from '../../shared/components/connection-pill
       border: 1px solid var(--border);
       border-radius: 0.5rem;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
     }
-    .icon-btn:hover {
-      background: var(--bg-muted);
-      color: var(--text-primary);
-      border-color: var(--accent);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .icon-btn:hover {
+        background: var(--bg-muted);
+        color: var(--text-primary);
+        border-color: var(--accent);
+      }
     }
     .icon-btn.active {
       background: var(--accent);

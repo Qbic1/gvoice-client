@@ -132,7 +132,7 @@ import { DomSanitizer } from '@angular/platform-browser';
       font-size: 1rem;
       background: var(--bg-base);
       color: var(--text-primary);
-      transition: all 0.2s ease;
+      transition: var(--t-interactive);
     }
     input[type="text"]::placeholder,
     input[type="password"]::placeholder {
@@ -173,13 +173,16 @@ import { DomSanitizer } from '@angular/platform-browser';
       cursor: pointer;
       font-weight: 600;
       font-size: 1rem;
-      transition: all 0.2s ease;
+      transition: var(--t-interactive);
       box-shadow: var(--shadow-sm);
     }
-    button[type="submit"]:hover:not(:disabled) {
-      background: var(--accent-hover);
-      box-shadow: var(--shadow-md);
-      transform: translateY(-1px);
+    
+    @media (hover: hover) and (pointer: fine) {
+      button[type="submit"]:hover:not(:disabled) {
+        background: var(--accent-hover);
+        box-shadow: var(--shadow-md);
+        transform: translateY(-1px);
+      }
     }
     button[type="submit"]:disabled {
       background: var(--bg-muted);
@@ -199,11 +202,14 @@ import { DomSanitizer } from '@angular/platform-browser';
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      transition: all 0.2s ease;
+      transition: var(--t-interactive);
     }
-    .home-btn:hover {
-      background: var(--bg-muted);
-      color: var(--text-primary);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .home-btn:hover {
+        background: var(--bg-muted);
+        color: var(--text-primary);
+      }
     }
     code {
       background: var(--accent-subtle);

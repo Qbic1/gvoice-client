@@ -44,6 +44,20 @@
      are arithmetically incompatible — so the ROLE stays constant across themes
      while the value adapts to each theme's ground. */
 
+  /* Motion.
+     `transition: all` was used in 28 places, which animates width, height and
+     padding that nothing intended to animate — layout properties cost a full
+     reflow per frame. These name the properties that actually change on state:
+     paint-only, compositor-friendly, and one place to tune. */
+  --t-interactive: background-color 0.2s ease, border-color 0.2s ease,
+                   color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease,
+                   opacity 0.2s ease;
+  --t-interactive-fast: background-color 0.15s ease, border-color 0.15s ease,
+                        color 0.15s ease, box-shadow 0.15s ease,
+                        transform 0.15s ease, opacity 0.15s ease;
+  /* Press feedback: fast enough to feel like the control answered the finger. */
+  --t-press: transform 0.06s ease-out;
+
   /* Typography & shape */
   --font-family:   'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --border-radius: 0.75rem;
@@ -231,9 +245,17 @@ textarea:focus-visible {
   caret-color: transparent !important;
 }
 
-/* 🔥 kill expensive blur */
-.app-background .volume-overlay {
+/* Every backdrop-filter in the app, not just the volume overlay. A tab left in
+   the background with a screen share open was still compositing a full-screen
+   12px blur. */
+.app-background .volume-overlay,
+.app-background .modal-overlay,
+.app-background .disconnect-overlay,
+.app-background .overlay-backdrop,
+.app-background [class*="overlay"] {
   backdrop-filter: none !important;
+}
+.app-background .volume-overlay {
   background: rgba(0, 0, 0, 0.6) !important;
 }
 
@@ -246,4 +268,27 @@ textarea:focus-visible {
 /* optional: reduce UI cost heavily */
 .app-background .participant-list {
   will-change: auto !important;
+}
+
+/* ── Reduced motion ──
+   Reduced motion means less movement, not a dead interface: color and opacity
+   transitions still carry meaning, so only movement and looping animation go.
+   Speaking, muted and connection states are all readable from color, glyph and
+   border with every animation off — see the Background Tab rule in DESIGN.md. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Movement is what causes trouble; drop it outright rather than shortening it. */
+  .speaking-ring,
+  .rooms-dot,
+  .dot,
+  .reconnect-dot {
+    animation: none !important;
+  }
 }

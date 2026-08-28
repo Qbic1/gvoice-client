@@ -30,6 +30,11 @@ import { AdminService } from '../../core/services/admin.service';
           </div>
 
           <div class="header-right">
+            <div class="rooms-badge" *ngIf="rooms().length > 0">
+              <span class="rooms-dot"></span>
+              <span class="rooms-count">{{ rooms().length }}</span>
+              <span class="rooms-label"> rooms active</span>
+            </div>
             <button type="button" class="icon-btn" (click)="refresh()" [disabled]="isRefreshing()" aria-label="Refresh rooms" title="Refresh rooms">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="23 4 23 10 17 10"/>
@@ -37,11 +42,6 @@ import { AdminService } from '../../core/services/admin.service';
                 <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
               </svg>
             </button>
-            <div class="rooms-badge" *ngIf="rooms().length > 0">
-              <span class="rooms-dot"></span>
-              <span class="rooms-count">{{ rooms().length }}</span>
-              <span class="rooms-label"> rooms active</span>
-            </div>
             <button *ngIf="!adminService.isAdmin()" (click)="openAdminLogin()" class="secondary-btn">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -327,13 +327,16 @@ import { AdminService } from '../../core/services/admin.service';
       border: 1px solid var(--border);
       border-radius: 0.5rem;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
       flex-shrink: 0;
     }
-    .icon-btn:hover:not(:disabled) {
-      background: var(--bg-muted);
-      color: var(--text-primary);
-      border-color: var(--accent);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .icon-btn:hover:not(:disabled) {
+        background: var(--bg-muted);
+        color: var(--text-primary);
+        border-color: var(--accent);
+      }
     }
     .icon-btn:disabled {
       opacity: 0.5;
@@ -341,19 +344,25 @@ import { AdminService } from '../../core/services/admin.service';
     }
 
     /* Rooms badge */
+    /* Sized to sit level with the 44px controls beside it without competing
+       with them: it reports state, it is not a target. */
     .rooms-badge {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 0.3rem;
-      font-size: 0.68rem;
+      gap: 0.4rem;
+      font-size: 0.75rem;
       font-weight: 600;
+      line-height: 1;
       color: var(--success-500);
       background: color-mix(in srgb, var(--success-500) 12%, var(--bg-surface));
       border: 1px solid color-mix(in srgb, var(--success-500) 25%, transparent);
-      padding: 0.2rem 0.55rem;
+      padding: 0 0.75rem;
+      height: 34px;
+      margin-right: 0.25rem;
       border-radius: 9999px;
       white-space: nowrap;
     }
+    .rooms-count { font-weight: 800; }
     .rooms-dot {
       width: 5px; height: 5px; min-width: 5px;
       border-radius: 50%;
@@ -384,12 +393,21 @@ import { AdminService } from '../../core/services/admin.service';
       font-weight: 600;
       font-size: 0.8125rem;
       white-space: nowrap;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
       box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);
     }
-    .primary-btn:hover:not(:disabled) {
-      background: var(--accent-hover);
-      transform: translateY(-1px);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .primary-btn:hover:not(:disabled) {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+      }
+    }
+    .primary-btn:active:not(:disabled),
+    .secondary-btn:active,
+    .icon-btn:active:not(:disabled) {
+      transform: scale(0.97);
+      transition: var(--t-press);
     }
     .primary-btn:disabled {
       background: var(--bg-muted);
@@ -414,12 +432,15 @@ import { AdminService } from '../../core/services/admin.service';
       font-weight: 600;
       font-size: 0.8125rem;
       white-space: nowrap;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
     }
-    .secondary-btn:hover {
-      border-color: var(--accent);
-      background: var(--accent-subtle);
-      color: var(--accent);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .secondary-btn:hover {
+        border-color: var(--accent);
+        background: var(--accent-subtle);
+        color: var(--accent);
+      }
     }
     /* Icon-only on very small screens */
     @media (max-width: 380px) {
@@ -435,9 +456,12 @@ import { AdminService } from '../../core/services/admin.service';
       cursor: pointer;
       font-weight: 600;
       font-size: 0.875rem;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
     }
-    .ghost-btn:hover { background: var(--bg-muted); color: var(--text-primary); }
+    
+    @media (hover: hover) and (pointer: fine) {
+        .ghost-btn:hover { background: var(--bg-muted); color: var(--text-primary); }
+    }
     .text-btn {
       background: none;
       border: none;
@@ -449,7 +473,10 @@ import { AdminService } from '../../core/services/admin.service';
       white-space: nowrap;
       transition: opacity 0.2s;
     }
-    .text-btn:hover { opacity: 0.7; }
+    
+    @media (hover: hover) and (pointer: fine) {
+        .text-btn:hover { opacity: 0.7; }
+    }
 
     /* ── Section header ── */
     .section-header {
@@ -492,23 +519,44 @@ import { AdminService } from '../../core/services/admin.service';
       align-items: center;
       gap: 0.75rem;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: var(--t-interactive);
       box-shadow: var(--shadow-sm);
       text-decoration: none;
       -webkit-tap-highlight-color: transparent;
       position: relative;
     }
-    .room-card:hover, .room-card:active {
+    
+    @media (hover: hover) and (pointer: fine) {
+      .room-card:hover {
+        border-color: var(--accent);
+        box-shadow: var(--shadow-md);
+      }
+    }
+    /* Touch gets the same acknowledgement through :active, which does not stick. */
+    .room-card:active {
       border-color: var(--accent);
       box-shadow: var(--shadow-md);
     }
-    .room-card:hover .join-btn, .room-card:active .join-btn {
+    
+    @media (hover: hover) and (pointer: fine) {
+      .room-card:hover .join-btn {
+        background: var(--accent);
+        color: var(--on-accent);
+        border-color: var(--accent);
+      }
+    }
+    /* Touch: the fill lands on press and lets go, instead of latching on. */
+    .room-card:active .join-btn {
       background: var(--accent);
       color: var(--on-accent);
       border-color: var(--accent);
     }
     @media (min-width: 600px) {
       .room-card { border-radius: 14px; padding: 1.125rem 1.25rem; gap: 1rem; }
+    }
+    /* The lift is a pointer response, so it needs the hover capability too —
+       on a touch screen it would stick after the tap. */
+    @media (min-width: 600px) and (hover: hover) and (pointer: fine) {
       .room-card:hover { transform: translateY(-2px); }
     }
     .room-card.active-card {
@@ -536,7 +584,9 @@ import { AdminService } from '../../core/services/admin.service';
       inset: 0;
       border-radius: inherit;
     }
-    .room-actions {
+    /* Only the info button sits above the stretched link; Join is part of the
+       link's own target and must stay beneath it, or it stops navigating. */
+    .room-actions .info-btn {
       position: relative;
       z-index: 1;
     }
@@ -552,12 +602,15 @@ import { AdminService } from '../../core/services/admin.service';
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
     }
-    .info-btn:hover, .info-btn.active {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: var(--accent-subtle);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .info-btn:hover, .info-btn.active {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-subtle);
+      }
     }
 
     .room-avatar {
@@ -613,15 +666,18 @@ import { AdminService } from '../../core/services/admin.service';
     .join-btn {
       display: inline-flex;
       align-items: center;
-      gap: 0.25rem;
-      font-size: 0.7rem;
+      justify-content: center;
+      gap: 0.35rem;
+      font-size: 0.8125rem;
       font-weight: 700;
-      padding: 0.3rem 0.6rem;
-      border-radius: 6px;
+      padding: 0 1rem;
+      min-height: 44px;
+      min-width: 88px;
+      border-radius: 8px;
       border: 1.5px solid var(--border);
       color: var(--text-secondary);
       background: var(--bg-base);
-      transition: all 0.2s;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
       white-space: nowrap;
       flex-shrink: 0;
     }
@@ -644,6 +700,7 @@ import { AdminService } from '../../core/services/admin.service';
       padding: 0.75rem;
       box-shadow: var(--shadow-lg);
       z-index: 10;
+      transform-origin: left center;
       animation: popIn 0.2s ease-out;
     }
     .participants-popover::after {
@@ -730,10 +787,14 @@ import { AdminService } from '../../core/services/admin.service';
       to { opacity: 1; transform: translateY(-50%) scale(1); }
     }
     @media (max-width: 800px) {
-      @keyframes popIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+      .participants-popover {
+        transform-origin: top center;
+        animation-name: popInBelow;
       }
+    }
+    @keyframes popInBelow {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     /* ── Empty state ── */
@@ -863,7 +924,7 @@ import { AdminService } from '../../core/services/admin.service';
       font-size: 1rem;
       background: var(--bg-base);
       color: var(--text-primary);
-      transition: all 0.2s;
+      transition: var(--t-interactive);
       box-sizing: border-box;
       font-family: var(--font-family);
     }

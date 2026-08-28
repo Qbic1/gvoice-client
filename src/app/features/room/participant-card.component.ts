@@ -50,21 +50,27 @@ import { avatarColor } from '../../shared/avatar-palette';
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
       cursor: pointer;
     }
-    .participant-card:hover {
-      border-color: var(--accent);
-      background: var(--accent-subtle);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .participant-card:hover {
+        border-color: var(--accent);
+        background: var(--accent-subtle);
+      }
     }
     .local-user {
       background: var(--accent-subtle);
       border-color: var(--border);
       cursor: default;
     }
-    .local-user:hover {
-      border-color: var(--border);
-      background: var(--accent-subtle);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .local-user:hover {
+        border-color: var(--border);
+        background: var(--accent-subtle);
+      }
     }
 
     .avatar {
@@ -125,20 +131,26 @@ import { avatarColor } from '../../shared/avatar-palette';
       height: 24px;
       border-radius: 6px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
       border: 1px solid transparent;
     }
-    .stream-badge:hover {
-      background: var(--accent);
-      color: var(--on-accent);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .stream-badge:hover {
+        background: var(--accent);
+        color: var(--on-accent);
+      }
     }
     .stream-badge.disabled {
       cursor: default;
       opacity: 0.6;
     }
-    .stream-badge.disabled:hover {
-      background: var(--accent-subtle);
-      color: var(--accent);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .stream-badge.disabled:hover {
+        background: var(--accent-subtle);
+        color: var(--accent);
+      }
     }
     .stream-badge .icon {
       display: flex;
