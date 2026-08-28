@@ -149,6 +149,9 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       display: flex;
       flex-direction: column;
       align-items: flex-start;
+      width: 100%;
+      max-width: 860px;
+      margin-inline: auto;
     }
     .local-wrapper {
       align-items: flex-end;
@@ -156,7 +159,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
 
     /* Remote bubble */
     .message-item {
-      max-width: 75%;
+      max-width: min(75%, 560px);
       padding: 0.75rem 1rem;
       border-radius: 12px;
       border-bottom-left-radius: 2px;
@@ -225,6 +228,9 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
     /* ── Input ── */
     .chat-input-form {
       display: flex;
+      width: 100%;
+      max-width: 892px;
+      margin-inline: auto;
       padding: 1rem;
       background: var(--bg-surface);
       border-top: 1px solid var(--border);

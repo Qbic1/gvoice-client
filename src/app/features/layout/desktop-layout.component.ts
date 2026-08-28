@@ -53,9 +53,10 @@ import { ConnectionPillComponent } from '../../shared/components/connection-pill
       </header>
 
       <div class="main-layout">
-        <!-- Presence is the room's primary job, so it owns the room. Chat is a
-             capability alongside it, not the stage. -->
-        <section class="roster-area">
+        <!-- Presence is read at a glance, not studied: the roster needs enough
+             width for legible cards, not the largest share of the screen. Ten
+             people fit in one or two columns, so the space goes to chat. -->
+        <aside class="roster-panel">
           <div class="roster-scroll">
             <app-participant-list (onWatchStream)="watchStream($event)" (onRejoin)="onRejoin.emit()"></app-participant-list>
           </div>
@@ -63,11 +64,11 @@ import { ConnectionPillComponent } from '../../shared/components/connection-pill
             <app-voice-controls></app-voice-controls>
             <app-connection-pill></app-connection-pill>
           </div>
-        </section>
-
-        <aside class="chat-rail">
-          <app-chat></app-chat>
         </aside>
+
+        <section class="chat-area">
+          <app-chat></app-chat>
+        </section>
       </div>
 
       <app-screen-share-overlay
@@ -173,41 +174,41 @@ import { ConnectionPillComponent } from '../../shared/components/connection-pill
       overflow: hidden;
     }
 
-    .roster-area {
-      flex: 1;
-      min-width: 0;
+    /* Sized to hold one or two participant cards comfortably and no more; it
+       stops growing once a second column fits, so a wide screen spends its
+       extra width on the conversation. */
+    .roster-panel {
+      width: clamp(300px, 26%, 480px);
+      flex-shrink: 0;
       display: flex;
       flex-direction: column;
-      background: var(--bg-base);
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
     }
     .roster-scroll {
       flex: 1;
       overflow-y: auto;
-      padding: 1.5rem;
+      padding: 1.25rem;
     }
     .controls-bar {
       flex: 0 0 auto;
-      padding: 1rem 1.5rem 1.25rem;
+      padding: 1rem 1.25rem 1.25rem;
       border-top: 1px solid var(--border);
-      background: var(--bg-surface);
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 0.75rem;
     }
 
-    .chat-rail {
-      width: clamp(360px, 40%, 560px);
-      flex-shrink: 0;
-      background: var(--bg-surface);
-      border-left: 1px solid var(--border);
+    .chat-area {
+      flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      background: var(--bg-base);
     }
-    /* Narrow screens: the rail gives up width before the roster does. */
     @media (max-width: 1100px) {
-      .chat-rail { width: clamp(320px, 36%, 400px); }
+      .roster-panel { width: clamp(280px, 30%, 360px); }
       .roster-scroll { padding: 1rem; }
     }
 
