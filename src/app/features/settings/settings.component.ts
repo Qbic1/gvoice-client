@@ -1,5 +1,6 @@
 import { Component, inject, signal, HostListener, Output, EventEmitter, Input, ViewChild, ElementRef, AfterViewInit, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FocusTrapDirective } from '../../shared/directives/focus-trap.directive';
 import { SettingsService } from '../../core/services/settings.service';
 import { AudioProcessorService } from '../../core/services/audio-processor.service';
 import { WebRtcService } from '../../core/services/webrtc.service';
@@ -10,14 +11,19 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FocusTrapDirective],
   template: `
     <div [class.modal-overlay]="!isInline" (click)="close()">
-      <div [class.modal-card]="!isInline" [class.inline-card]="isInline" (click)="$event.stopPropagation()">
+      <div [class.modal-card]="!isInline" [class.inline-card]="isInline"
+           [attr.role]="isInline ? null : 'dialog'"
+           [attr.aria-modal]="isInline ? null : 'true'"
+           [attr.aria-labelledby]="isInline ? null : 'settings-title'"
+           appFocusTrap [focusTrapDisabled]="isInline"
+           (click)="$event.stopPropagation()">
 
         <!-- Header -->
         <header class="modal-header" *ngIf="!isInline">
-          <h3>Voice Settings</h3>
+          <h3 id="settings-title">Voice Settings</h3>
           <button type="button" class="close-btn" aria-label="Close settings" (click)="close()">×</button>
         </header>
 
@@ -66,9 +72,9 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
                     (click)="themeService.setTheme(t.id)"
                     [title]="t.label"
                   >
-                    <span class="chip-swatch">
-                      <span class="chip-bg"     [style.background]="t.swatches[0]"></span>
-                      <span class="chip-accent" [style.background]="t.swatches[1]"></span>
+                    <span class="chip-swatch" [attr.data-theme]="t.id">
+                      <span class="chip-bg"></span>
+                      <span class="chip-accent"></span>
                     </span>
                     <span class="chip-icon">{{ t.icon }}</span>
                     <span class="chip-label">{{ t.label }}</span>
@@ -84,9 +90,9 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
                     (click)="themeService.setTheme(t.id)"
                     [title]="t.label"
                   >
-                    <span class="chip-swatch">
-                      <span class="chip-bg"     [style.background]="t.swatches[0]"></span>
-                      <span class="chip-accent" [style.background]="t.swatches[1]"></span>
+                    <span class="chip-swatch" [attr.data-theme]="t.id">
+                      <span class="chip-bg"></span>
+                      <span class="chip-accent"></span>
                     </span>
                     <span class="chip-icon">{{ t.icon }}</span>
                     <span class="chip-label">{{ t.label }}</span>
@@ -99,9 +105,9 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
             <div class="theme-preview">
               <div class="preview-label">Active theme</div>
               <div class="preview-badge">
-                <span class="preview-swatch">
-                  <span [style.background]="currentTheme().swatches[0]" style="width:50%;height:100%"></span>
-                  <span [style.background]="currentTheme().swatches[1]" style="width:50%;height:100%"></span>
+                <span class="preview-swatch" [attr.data-theme]="currentTheme().id">
+                  <span class="chip-bg"></span>
+                  <span class="chip-accent"></span>
                 </span>
                 {{ currentTheme().icon }} {{ currentTheme().label }}
               </div>
@@ -424,8 +430,10 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
       border: 1.5px solid rgba(0,0,0,0.08);
       flex-shrink: 0;
     }
-    .chip-bg     { width: 50%; height: 100%; }
-    .chip-accent { width: 50%; height: 100%; }
+    /* Colors come from the cascade: the swatch carries data-theme, so these
+       resolve to that theme's own tokens rather than a copied literal. */
+    .chip-bg     { width: 50%; height: 100%; background: var(--bg-base); }
+    .chip-accent { width: 50%; height: 100%; background: var(--accent); }
     .chip-icon   { font-size: 0.75rem; line-height: 1; }
     .chip-label {
       font-size: 0.58rem;

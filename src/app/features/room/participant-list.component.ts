@@ -1,5 +1,6 @@
 import { Component, inject, signal, computed, Output, EventEmitter, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FocusTrapDirective } from '../../shared/directives/focus-trap.directive';
 import { FormsModule } from '@angular/forms';
 import { ParticipantService } from '../../core/services/participant.service';
 import { SignalRService } from '../../core/services/signalr.service';
@@ -11,11 +12,11 @@ import { ParticipantCardComponent } from './participant-card.component';
 @Component({
   selector: 'app-participant-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ParticipantCardComponent],
+  imports: [CommonModule, FormsModule, ParticipantCardComponent, FocusTrapDirective],
   template: `
     <div class="participant-list">
       <div class="list-header">
-        <h3>Participants</h3>
+        <h2>Participants</h2>
         <span class="count">{{ participants().length }}</span>
       </div>
 
@@ -43,9 +44,11 @@ import { ParticipantCardComponent } from './participant-card.component';
 
       <!-- Volume Control Modal -->
       <div *ngIf="selectedParticipant()" class="volume-overlay" (click)="closeVolumeControl()">
-        <div class="volume-card" (click)="$event.stopPropagation()">
+        <div class="volume-card" role="dialog" aria-modal="true"
+             aria-labelledby="volume-title" appFocusTrap
+             (click)="$event.stopPropagation()">
           <div class="vol-header">
-            <h4>User Volume: {{ selectedParticipant()?.displayName }}</h4>
+            <h4 id="volume-title">User Volume: {{ selectedParticipant()?.displayName }}</h4>
             <button type="button" class="close-x" aria-label="Close volume control" (click)="closeVolumeControl()">×</button>
           </div>
           
@@ -90,7 +93,7 @@ import { ParticipantCardComponent } from './participant-card.component';
       margin-bottom: 1rem;
       padding: 0 0.5rem;
     }
-    .list-header h3 {
+    .list-header h2 {
       margin: 0;
       font-size: 0.75rem;
       text-transform: uppercase;

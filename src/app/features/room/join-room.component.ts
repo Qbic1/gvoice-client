@@ -31,27 +31,36 @@ import { DomSanitizer } from '@angular/platform-browser';
         <form (submit)="onSubmit($event)">
           <input
             type="text"
+            aria-label="Display name"
             [(ngModel)]="nameInput"
             name="displayName"
             placeholder="Display Name"
             maxlength="20"
+            autocomplete="nickname"
             [disabled]="isConnecting"
           />
           <input
             type="password"
+            aria-label="Room password"
             [(ngModel)]="roomPassword"
             name="roomPassword"
             placeholder="Room Password"
+            maxlength="64"
+            autocomplete="current-password"
             [disabled]="isConnecting"
           />
-          <div *ngIf="roomNotFoundError" class="field-error">The requested room does not exist.</div>
-          <div *ngIf="passwordError" class="field-error">Incorrect room password.</div>
-          <div *ngIf="roomFullError" class="field-error">The room is currently full (max 10 users).</div>
+          <div role="alert" aria-live="assertive">
+            <div *ngIf="roomNotFoundError" class="field-error">The requested room does not exist.</div>
+            <div *ngIf="passwordError" class="field-error">Incorrect room password.</div>
+            <div *ngIf="roomFullError" class="field-error">The room is currently full (max 10 users).</div>
+          </div>
 
           <label class="listen-only-label">
             <input type="checkbox" [(ngModel)]="isListenOnly" name="isListenOnly" [disabled]="isConnecting" />
             Join as Listen-only
           </label>
+          <!-- The choice is locked for the session, and nothing said so. -->
+          <p class="listen-only-hint">Hear everyone and use chat, without a microphone. Changing this later means rejoining.</p>
           <button type="submit" [disabled]="!nameInput.trim() || !roomPassword.trim() || isConnecting">
             {{ isConnecting ? 'Connecting...' : 'Join' }}
           </button>
@@ -147,6 +156,13 @@ import { DomSanitizer } from '@angular/platform-browser';
       background: var(--bg-muted);
       color: var(--text-muted);
       cursor: not-allowed;
+    }
+    .listen-only-hint {
+      margin: -0.25rem 0 1rem;
+      font-size: 0.75rem;
+      line-height: 1.45;
+      color: var(--text-muted);
+      text-align: left;
     }
     .listen-only-label {
       display: flex;

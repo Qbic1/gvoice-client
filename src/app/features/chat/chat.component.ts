@@ -13,7 +13,11 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
   imports: [CommonModule, FormsModule, LinkifyPipe],
   template: `
     <div class="chat-container">
-      <div class="messages-list" #scrollContainer>
+      <!-- polite: a new message should be announced, but never interrupt what
+           the user is already reading or typing. -->
+      <div class="messages-list" #scrollContainer
+           role="log" aria-live="polite" aria-relevant="additions"
+           aria-label="Room chat">
         <!-- An empty chat used to render as a blank rectangle with no
              explanation at all. -->
         <div *ngIf="messages().length === 0" class="chat-empty">
@@ -47,6 +51,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
         <input
           type="text"
           aria-label="Message"
+          maxlength="2000"
           [(ngModel)]="messageInput"
           name="message"
           [placeholder]="isConnected() ? 'Message or paste image...' : 'Reconnecting — messages can\\'t be sent'"

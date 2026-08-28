@@ -1,21 +1,24 @@
 import { Component, Input, Output, EventEmitter, inject, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FocusTrapDirective } from '../../shared/directives/focus-trap.directive';
 import { IconService } from '../../core/services/icon.service';
 
 @Component({
   selector: 'app-screen-share-overlay',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FocusTrapDirective],
   template: `
     <div class="overlay-backdrop" (click)="close()">
-      <div class="overlay-content" (click)="$event.stopPropagation()">
+      <div class="overlay-content" role="dialog" aria-modal="true"
+           aria-label="Shared screen" appFocusTrap
+           (click)="$event.stopPropagation()">
         <video #videoPlayer autoplay muted playsinline [srcObject]="stream"></video>
         
         <div class="overlay-actions">
-          <button class="action-btn" (click)="toggleFullscreen()" title="Toggle Fullscreen">
+          <button type="button" class="action-btn" (click)="toggleFullscreen()" aria-label="Toggle fullscreen" title="Toggle Fullscreen">
             <span class="icon" [innerHTML]="icons.FULLSCREEN"></span>
           </button>
-          <button class="action-btn close-btn" (click)="close()" title="Close">
+          <button type="button" class="action-btn close-btn" (click)="close()" aria-label="Close shared screen" title="Close">
             <span class="icon" [innerHTML]="icons.CLOSE"></span>
           </button>
         </div>

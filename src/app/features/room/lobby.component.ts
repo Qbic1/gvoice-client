@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, OnDestroy, signal , HostListener } from '@angular/core';
 import { avatarColor } from '../../shared/avatar-palette';
 import { CommonModule } from '@angular/common';
+import { FocusTrapDirective } from '../../shared/directives/focus-trap.directive';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -10,7 +11,7 @@ import { AdminService } from '../../core/services/admin.service';
 @Component({
   selector: 'app-lobby',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, FocusTrapDirective],
   template: `
     <div class="lobby-page">
 
@@ -24,7 +25,7 @@ import { AdminService } from '../../core/services/admin.service';
           <div class="brand">
             <span class="brand-logo">V</span>
             <div class="brand-text">
-              <span class="brand-name">VoiceRoom</span>
+              <h1 class="brand-name">VoiceRoom</h1>
               <span class="brand-tag">Lobby</span>
             </div>
           </div>
@@ -156,19 +157,24 @@ import { AdminService } from '../../core/services/admin.service';
 
       <!-- Admin Login Modal -->
       <div *ngIf="showAdminLogin()" class="modal-overlay" (click)="closeModals()">
-        <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal" role="dialog" aria-modal="true"
+             aria-labelledby="admin-title" appFocusTrap
+             (click)="$event.stopPropagation()">
           <div class="modal-icon">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
               <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
           </div>
-          <h3>Admin Login</h3>
+          <h3 id="admin-title">Admin Login</h3>
           <p class="modal-sub">Enter your admin password to manage rooms.</p>
           <div *ngIf="errorMessage()" class="error-banner">{{ errorMessage() }}</div>
           <div class="input-group">
-            <label>Password</label>
-            <input type="password" [(ngModel)]="adminPasswordInput" placeholder="Enter admin password" (keyup.enter)="loginAdmin()" autofocus />
+            <label for="admin-password">Password</label>
+            <input id="admin-password" type="password" name="adminPassword"
+                   [(ngModel)]="adminPasswordInput" placeholder="Enter admin password"
+                   maxlength="64" autocomplete="current-password"
+                   (keyup.enter)="loginAdmin()" />
           </div>
           <div class="modal-actions">
             <button class="ghost-btn" (click)="closeModals()">Cancel</button>
@@ -179,7 +185,9 @@ import { AdminService } from '../../core/services/admin.service';
 
       <!-- Create Room Modal -->
       <div *ngIf="showCreateRoom()" class="modal-overlay" (click)="closeModals()">
-        <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal" role="dialog" aria-modal="true"
+             aria-labelledby="create-title" appFocusTrap
+             (click)="$event.stopPropagation()">
           <div class="modal-icon">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -187,16 +195,20 @@ import { AdminService } from '../../core/services/admin.service';
               <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
             </svg>
           </div>
-          <h3>Create Room</h3>
+          <h3 id="create-title">Create Room</h3>
           <p class="modal-sub">Set up a new voice room for your team.</p>
           <div *ngIf="errorMessage()" class="error-banner">{{ errorMessage() }}</div>
           <div class="input-group">
-            <label>Room Name</label>
-            <input type="text" [(ngModel)]="newRoomName" placeholder="e.g. Daily Sync" />
+            <label for="new-room-name">Room Name</label>
+            <input id="new-room-name" type="text" name="newRoomName"
+                   [(ngModel)]="newRoomName" placeholder="e.g. Daily Sync"
+                   maxlength="40" autocomplete="off" />
           </div>
           <div class="input-group">
-            <label>Password</label>
-            <input type="password" [(ngModel)]="newRoomPassword" placeholder="Required to join" />
+            <label for="new-room-password">Password</label>
+            <input id="new-room-password" type="password" name="newRoomPassword"
+                   [(ngModel)]="newRoomPassword" placeholder="Required to join"
+                   maxlength="64" autocomplete="new-password" />
           </div>
           <div class="modal-actions">
             <button class="ghost-btn" (click)="closeModals()">Cancel</button>
@@ -288,6 +300,7 @@ import { AdminService } from '../../core/services/admin.service';
       min-width: 0;
     }
     .brand-name {
+      margin: 0;
       font-size: 0.9375rem;
       font-weight: 800;
       color: var(--text-primary);
