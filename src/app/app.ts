@@ -122,10 +122,13 @@ import { Subscription } from 'rxjs';
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
-    .reconnect-cancel:hover {
-      background: var(--accent-subtle);
-      border-color: var(--accent);
-      color: var(--accent);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .reconnect-cancel:hover {
+        background: var(--accent-subtle);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
     }
     .reconnect-dot {
       width: 8px;
@@ -185,17 +188,20 @@ import { Subscription } from 'rxjs';
     .primary-btn {
       padding: 0.75rem 1.5rem;
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border: none;
       border-radius: 0.5rem;
       font-weight: 600;
       font-size: 0.875rem;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
     }
-    .primary-btn:hover {
-      background: var(--accent-hover);
-      transform: translateY(-1px);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .primary-btn:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+      }
     }
   `]
 })
@@ -289,7 +295,24 @@ export class App implements OnInit, OnDestroy {
       target.tagName === 'INPUT' ||
       target.tagName === 'TEXTAREA' ||
       target.isContentEditable ||
-      this.showSettings()
+      this.showSettings() ||
+      this.wouldStealActivation(event, target)
     );
+  }
+
+  /**
+   * PTT defaults to Space, and the global handler calls preventDefault() on it
+   * while PTT mode is on. With focus on a button or link that swallowed the
+   * key's native activation: a keyboard user could not press any control in the
+   * app while PTT was enabled. Native activation wins — the transmit key is
+   * rebindable, the ability to operate the interface is not.
+   */
+  private wouldStealActivation(event: KeyboardEvent, target: HTMLElement): boolean {
+    if (event.code !== 'Space' && event.code !== 'Enter' && event.code !== 'NumpadEnter') return false;
+    const tag = target.tagName;
+    if (tag === 'BUTTON' || tag === 'SELECT' || tag === 'SUMMARY') return true;
+    if (tag === 'A' && target.hasAttribute('href')) return true;
+    const role = target.getAttribute('role');
+    return role === 'button' || role === 'link' || role === 'checkbox' || role === 'tab';
   }
 }

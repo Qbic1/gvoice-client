@@ -13,7 +13,23 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
   imports: [CommonModule, FormsModule, LinkifyPipe],
   template: `
     <div class="chat-container">
-      <div class="messages-list" #scrollContainer>
+      <!-- polite: a new message should be announced, but never interrupt what
+           the user is already reading or typing. -->
+      <div class="messages-list" #scrollContainer
+           role="log" aria-live="polite" aria-relevant="additions"
+           aria-label="Room chat">
+        <!-- An empty chat used to render as a blank rectangle with no
+             explanation at all. -->
+        <div *ngIf="messages().length === 0" class="chat-empty">
+          <span class="empty-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </span>
+          <p class="empty-title">No messages yet</p>
+          <p class="empty-sub">Share a link or drop a note — everyone in the room sees it.</p>
+        </div>
+
         <div *ngFor="let msg of messages()" class="message-wrapper" [class.local-wrapper]="msg.isLocal">
           <div class="message-item" [class.local-message]="msg.isLocal">
             <div class="msg-header">
@@ -31,8 +47,11 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       </div>
 
       <form (submit)="sendMessage($event)" class="chat-input-form">
+        <div class="composer">
         <input
           type="text"
+          aria-label="Message"
+          maxlength="2000"
           [(ngModel)]="messageInput"
           name="message"
           [placeholder]="isConnected() ? 'Message or paste image...' : 'Reconnecting — messages can\\'t be sent'"
@@ -40,16 +59,17 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
           [disabled]="!isConnected()"
           (paste)="onPaste($event)"
         />
-        <button type="submit" [disabled]="!messageInput.trim() || !isConnected()">
+        <button type="submit" aria-label="Send message" [disabled]="!messageInput.trim() || !isConnected()">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
           </svg>
         </button>
+        </div>
       </form>
 
       <!-- Lightbox -->
       <div *ngIf="lightboxImage()" class="lightbox-overlay" (click)="closeLightbox()">
-        <button class="close-lightbox" (click)="closeLightbox()">×</button>
+        <button type="button" class="close-lightbox" aria-label="Close image" (click)="closeLightbox()">×</button>
         <img [src]="lightboxImage()" (click)="$event.stopPropagation()" alt="Full size image" />
       </div>
     </div>
@@ -59,6 +79,8 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       display: block;
       height: 100%;
       min-height: 0;
+      /* The reading column, shared by the message list and the composer. */
+      --chat-measure: 1040px;
     }
 
     .chat-container {
@@ -88,15 +110,57 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       flex-direction: column;
       gap: 1rem;
       background: var(--bg-base);
+      min-height: 0;
     }
     @media (max-width: 768px) {
       .messages-list { padding: 1rem; }
+    }
+
+    /* Matches the lobby's empty state: dashed edge, muted mark, short measure. */
+    .chat-empty {
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0.25rem;
+      padding: 1.75rem 1.25rem;
+      max-width: 280px;
+      border: 1.5px dashed var(--border);
+      border-radius: 14px;
+      background: var(--bg-surface);
+    }
+    .empty-mark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      margin-bottom: 0.25rem;
+      border-radius: 12px;
+      background: var(--bg-muted);
+      color: var(--text-muted);
+    }
+    .empty-title {
+      margin: 0;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .empty-sub {
+      margin: 0;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      color: var(--text-muted);
     }
 
     .message-wrapper {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
+      width: 100%;
+      max-width: var(--chat-measure);
+      margin-inline: auto;
     }
     .local-wrapper {
       align-items: flex-end;
@@ -104,7 +168,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
 
     /* Remote bubble */
     .message-item {
-      max-width: 75%;
+      max-width: min(72%, 620px);
       padding: 0.75rem 1rem;
       border-radius: 12px;
       border-bottom-left-radius: 2px;
@@ -116,7 +180,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
     /* Local bubble */
     .local-message {
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border-color: transparent;
       border-bottom-left-radius: 12px;
       border-bottom-right-radius: 2px;
@@ -155,7 +219,10 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       object-fit: cover;
       transition: opacity 0.2s;
     }
-    .image-bubble img:hover { opacity: 0.9; }
+    
+    @media (hover: hover) and (pointer: fine) {
+        .image-bubble img:hover { opacity: 0.9; }
+    }
 
     /* ── Links ── */
     ::ng-deep .chat-link {
@@ -163,17 +230,25 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       text-decoration: underline;
     }
     .local-message ::ng-deep .chat-link {
-      color: #fff;
+      color: var(--on-accent);
       opacity: 0.85;
     }
 
     /* ── Input ── */
     .chat-input-form {
-      display: flex;
-      padding: 1rem;
+      display: block;
+      width: 100%;
+      padding: 1rem 1.5rem;
       background: var(--bg-surface);
       border-top: 1px solid var(--border);
+    }
+    /* Same column as the messages above, so the field lines up with them. */
+    .composer {
+      display: flex;
       gap: 0.75rem;
+      width: 100%;
+      max-width: var(--chat-measure);
+      margin-inline: auto;
     }
     .chat-input-form input {
       flex: 1;
@@ -189,25 +264,27 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       color: var(--text-muted);
     }
     .chat-input-form input:focus {
-      outline: none;
       border-color: var(--accent);
     }
     .chat-input-form button {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border: none;
       border-radius: 8px;
       cursor: pointer;
       transition: background 0.2s;
       flex-shrink: 0;
     }
-    .chat-input-form button:hover:not(:disabled) {
-      background: var(--accent-hover);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .chat-input-form button:hover:not(:disabled) {
+        background: var(--accent-hover);
+      }
     }
     .chat-input-form button:disabled {
       background: var(--bg-muted);
@@ -246,7 +323,10 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       opacity: 0.8;
       transition: opacity 0.15s;
     }
-    .close-lightbox:hover { opacity: 1; }
+    
+    @media (hover: hover) and (pointer: fine) {
+        .close-lightbox:hover { opacity: 1; }
+    }
 
     @keyframes fadeIn {
       from { opacity: 0; }

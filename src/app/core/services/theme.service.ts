@@ -15,8 +15,16 @@ export interface Theme {
   id: ThemeId;
   label: string;
   icon: string;
-  swatches: [string, string]; // [bg, accent]
 }
+
+/*
+ * Swatches deliberately carry no color values. They used to hold a hardcoded
+ * [bg, accent] pair copied from styles.css, which drifted the moment the tokens
+ * changed: after the contrast pass, Ocean and Amber advertised accents the
+ * themes no longer used. The chip now stamps `data-theme` on itself and reads
+ * --bg-base and --accent through the cascade, so a swatch cannot disagree with
+ * the theme it previews.
+ */
 
 export const THEMES: Theme[] = [
   // ── Light themes ──────────────────────────────
@@ -24,25 +32,21 @@ export const THEMES: Theme[] = [
     id: 'purple',
     label: 'Purple',
     icon: '🪻',
-    swatches: ['#faf5ff', '#7c3aed'],
   },
   {
     id: 'ocean',
     label: 'Ocean',
     icon: '🌊',
-    swatches: ['#f0fdfa', '#0d9488'],
   },
   {
     id: 'rose',
     label: 'Rose',
     icon: '🌸',
-    swatches: ['#fff1f2', '#e11d48'],
   },
   {
     id: 'amber',
     label: 'Amber',
     icon: '🌅',
-    swatches: ['#fffbeb', '#d97706'],
   },
 
   // ── Dark themes ───────────────────────────────
@@ -50,25 +54,21 @@ export const THEMES: Theme[] = [
     id: 'dark-purple',
     label: 'Dark Purple',
     icon: '🔮',
-    swatches: ['#0f0a1e', '#a78bfa'],
   },
   {
     id: 'dark-ocean',
     label: 'Dark Ocean',
     icon: '🌌',
-    swatches: ['#020c14', '#06b6d4'],
   },
   {
     id: 'noir',
     label: 'Noir',
     icon: '🖤',
-    swatches: ['#0d0d0d', '#f43f5e'],
   },
   {
     id: 'obsidian',
     label: 'Obsidian',
     icon: '🌑',
-    swatches: ['#0a0a0f', '#ffb347'],
   },
 ];
 

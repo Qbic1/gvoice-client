@@ -31,27 +31,36 @@ import { DomSanitizer } from '@angular/platform-browser';
         <form (submit)="onSubmit($event)">
           <input
             type="text"
+            aria-label="Display name"
             [(ngModel)]="nameInput"
             name="displayName"
             placeholder="Display Name"
             maxlength="20"
+            autocomplete="nickname"
             [disabled]="isConnecting"
           />
           <input
             type="password"
+            aria-label="Room password"
             [(ngModel)]="roomPassword"
             name="roomPassword"
             placeholder="Room Password"
+            maxlength="64"
+            autocomplete="current-password"
             [disabled]="isConnecting"
           />
-          <div *ngIf="roomNotFoundError" class="field-error">The requested room does not exist.</div>
-          <div *ngIf="passwordError" class="field-error">Incorrect room password.</div>
-          <div *ngIf="roomFullError" class="field-error">The room is currently full (max 10 users).</div>
+          <div role="alert" aria-live="assertive">
+            <div *ngIf="roomNotFoundError" class="field-error">The requested room does not exist.</div>
+            <div *ngIf="passwordError" class="field-error">Incorrect room password.</div>
+            <div *ngIf="roomFullError" class="field-error">The room is currently full (max 10 users).</div>
+          </div>
 
           <label class="listen-only-label">
             <input type="checkbox" [(ngModel)]="isListenOnly" name="isListenOnly" [disabled]="isConnecting" />
             Join as Listen-only
           </label>
+          <!-- The choice is locked for the session, and nothing said so. -->
+          <p class="listen-only-hint">Hear everyone and use chat, without a microphone. Changing this later means rejoining.</p>
           <button type="submit" [disabled]="!nameInput.trim() || !roomPassword.trim() || isConnecting">
             {{ isConnecting ? 'Connecting...' : 'Join' }}
           </button>
@@ -107,13 +116,17 @@ import { DomSanitizer } from '@angular/platform-browser';
       color: var(--text-secondary);
       margin-bottom: 2rem;
     }
+    /* Tinted rather than solid: a solid fill needs its own foreground token to
+       stay readable once --error-500 adapts per theme, and the tint pattern is
+       what every other status surface in the app already uses. */
     .error-banner {
-      background: var(--error-500);
-      color: #fff;
+      background: color-mix(in srgb, var(--error-500) 12%, var(--bg-surface));
+      border: 1px solid color-mix(in srgb, var(--error-500) 30%, transparent);
+      color: var(--error-500);
       padding: 1rem;
       border-radius: 0.5rem;
       margin-bottom: 1rem;
-      font-weight: 500;
+      font-weight: 600;
     }
     form {
       display: flex;
@@ -128,7 +141,7 @@ import { DomSanitizer } from '@angular/platform-browser';
       font-size: 1rem;
       background: var(--bg-base);
       color: var(--text-primary);
-      transition: all 0.2s ease;
+      transition: var(--t-interactive);
     }
     input[type="text"]::placeholder,
     input[type="password"]::placeholder {
@@ -143,6 +156,13 @@ import { DomSanitizer } from '@angular/platform-browser';
       background: var(--bg-muted);
       color: var(--text-muted);
       cursor: not-allowed;
+    }
+    .listen-only-hint {
+      margin: -0.25rem 0 1rem;
+      font-size: 0.75rem;
+      line-height: 1.45;
+      color: var(--text-muted);
+      text-align: left;
     }
     .listen-only-label {
       display: flex;
@@ -163,19 +183,22 @@ import { DomSanitizer } from '@angular/platform-browser';
     button[type="submit"] {
       padding: 0.875rem 1.5rem;
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border: none;
       border-radius: 0.5rem;
       cursor: pointer;
       font-weight: 600;
       font-size: 1rem;
-      transition: all 0.2s ease;
+      transition: var(--t-interactive);
       box-shadow: var(--shadow-sm);
     }
-    button[type="submit"]:hover:not(:disabled) {
-      background: var(--accent-hover);
-      box-shadow: var(--shadow-md);
-      transform: translateY(-1px);
+    
+    @media (hover: hover) and (pointer: fine) {
+      button[type="submit"]:hover:not(:disabled) {
+        background: var(--accent-hover);
+        box-shadow: var(--shadow-md);
+        transform: translateY(-1px);
+      }
     }
     button[type="submit"]:disabled {
       background: var(--bg-muted);
@@ -195,11 +218,14 @@ import { DomSanitizer } from '@angular/platform-browser';
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      transition: all 0.2s ease;
+      transition: var(--t-interactive);
     }
-    .home-btn:hover {
-      background: var(--bg-muted);
-      color: var(--text-primary);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .home-btn:hover {
+        background: var(--bg-muted);
+        color: var(--text-primary);
+      }
     }
     code {
       background: var(--accent-subtle);

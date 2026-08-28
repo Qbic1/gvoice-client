@@ -2,6 +2,7 @@ import { Component, input, output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Participant } from '../../core/models/participant.model';
 import { IconService } from '../../core/services/icon.service';
+import { avatarColor } from '../../shared/avatar-palette';
 
 @Component({
   selector: 'app-participant-card',
@@ -46,46 +47,59 @@ import { IconService } from '../../core/services/icon.service';
       border: 1px solid var(--border);
       border-radius: 0.625rem;
       padding: 0.75rem;
+      min-width: 0;
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
       cursor: pointer;
     }
-    .participant-card:hover {
-      border-color: var(--accent);
-      background: var(--accent-subtle);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .participant-card:hover {
+        border-color: var(--accent);
+        background: var(--accent-subtle);
+      }
+    }
+    /* Speaking, stated without motion: the ring animates, this does not. */
+    .participant-card.speaking {
+      border-color: var(--success-500);
+      background: color-mix(in srgb, var(--success-500) 8%, var(--bg-surface));
     }
     .local-user {
       background: var(--accent-subtle);
       border-color: var(--border);
       cursor: default;
     }
-    .local-user:hover {
-      border-color: var(--border);
-      background: var(--accent-subtle);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .local-user:hover {
+        border-color: var(--border);
+        background: var(--accent-subtle);
+      }
     }
 
     .avatar {
-      width: 38px;
-      height: 38px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #fff;
       font-weight: 600;
-      font-size: 1rem;
+      font-size: 1.0625rem;
       position: relative;
       flex-shrink: 0;
     }
+    /* One ring, not two: this used to set both border and outline in the same
+       color, drawing a doubled 4px edge. */
     .speaking-ring {
       position: absolute;
       top: -3px; left: -3px; right: -3px; bottom: -3px;
-      border: 2px solid var(--success-500);
+      border: 3px solid var(--success-500);
       border-radius: 50%;
       animation: pulse-ring 1.5s cubic-bezier(0.24, 0, 0.38, 1) infinite;
-      outline: 2px solid var(--success-500);
     }
     @keyframes pulse-ring {
       0%   { transform: scale(0.95); opacity: 1; }
@@ -124,20 +138,26 @@ import { IconService } from '../../core/services/icon.service';
       height: 24px;
       border-radius: 6px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
       border: 1px solid transparent;
     }
-    .stream-badge:hover {
-      background: var(--accent);
-      color: #fff;
+    
+    @media (hover: hover) and (pointer: fine) {
+      .stream-badge:hover {
+        background: var(--accent);
+        color: var(--on-accent);
+      }
     }
     .stream-badge.disabled {
       cursor: default;
       opacity: 0.6;
     }
-    .stream-badge.disabled:hover {
-      background: var(--accent-subtle);
-      color: var(--accent);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .stream-badge.disabled:hover {
+        background: var(--accent-subtle);
+        color: var(--accent);
+      }
     }
     .stream-badge .icon {
       display: flex;
@@ -194,11 +214,6 @@ export class ParticipantCardComponent {
   icons = inject(IconService);
 
   getAvatarColor(name: string): string {
-    const colors = ['#6366f1', '#ec4899', '#8b5cf6', '#f59e0b', '#10b981', '#3b82f6'];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
+    return avatarColor(name);
   }
 }

@@ -18,6 +18,8 @@ import { LayoutService } from '../../core/services/layout.service';
           [class.muted]="isMuted()" 
           [disabled]="isListenOnly() || (isPttMode() && !isMobile())"
           class="control-btn"
+          [attr.aria-label]="isListenOnly() ? 'Microphone unavailable' : (isPttMode() ? 'Push-to-talk is active' : (isMuted() ? 'Unmute microphone' : 'Mute microphone'))"
+          [attr.aria-pressed]="isMuted()"
           [title]="isListenOnly() ? 'Microphone unavailable' : (isPttMode() ? 'PTT Active' : (isMuted() ? 'Unmute' : 'Mute'))"
         >
           <span class="icon" [innerHTML]="getMicIcon()"></span>
@@ -28,7 +30,9 @@ import { LayoutService } from '../../core/services/layout.service';
           [class.ptt-active]="isPttMode()"
           [disabled]="isListenOnly()"
           class="control-btn ptt-toggle"
-          [title]="isPttMode() ? 'Disable PTT' : 'Enable PTT'"
+          [attr.aria-label]="isListenOnly() ? 'Microphone unavailable' : (isPttMode() ? 'Turn off push-to-talk' : 'Turn on push-to-talk')"
+          [attr.aria-pressed]="isPttMode()"
+          [title]="isListenOnly() ? 'Microphone unavailable' : (isPttMode() ? 'Disable PTT' : 'Enable PTT')"
         >
           <span class="icon ptt-text">PTT</span>
         </button>
@@ -38,6 +42,8 @@ import { LayoutService } from '../../core/services/layout.service';
           [class.active]="isDeafened()"
           [class.muted]="isDeafened()"
           class="control-btn"
+          [attr.aria-label]="isDeafened() ? 'Turn incoming audio back on' : 'Mute all incoming audio'"
+          [attr.aria-pressed]="isDeafened()"
           [title]="isDeafened() ? 'Undeafen' : 'Deafen'"
         >
           <span class="icon" [innerHTML]="getDeafenIcon()"></span>
@@ -49,6 +55,8 @@ import { LayoutService } from '../../core/services/layout.service';
         <button 
           (click)="toggleMobilePtt()" 
           [class.transmitting]="isPttActive()"
+          [attr.aria-label]="isPttActive() ? 'Transmitting — tap to stop' : 'Tap to talk'"
+          [attr.aria-pressed]="isPttActive()"
           class="mobile-ptt-btn"
         >
           <div class="inner-circle">
@@ -58,8 +66,10 @@ import { LayoutService } from '../../core/services/layout.service';
         </button>
       </div>
 
-      <div class="mode-label mt-2" [class.ptt]="isPttMode()">
-        {{ isPttMode() ? 'PTT Mode' : 'Open Mic' }}
+      <div class="mode-label mt-2"
+           [class.ptt]="isPttMode() && !isListenOnly()"
+           [class.listen-only]="isListenOnly()">
+        {{ modeLabel() }}
       </div>
     </div>
   `,
@@ -90,14 +100,20 @@ import { LayoutService } from '../../core/services/layout.service';
       border-radius: 8px;
       background: var(--bg-surface);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
       color: var(--text-secondary);
       box-shadow: var(--shadow-sm);
     }
-    .control-btn:hover:not(:disabled) {
-      background: var(--bg-base);
-      color: var(--text-primary);
-      transform: translateY(-1px);
+        @media (hover: hover) and (pointer: fine) {
+      .control-btn:hover:not(:disabled) {
+        background: var(--bg-base);
+        color: var(--text-primary);
+        transform: translateY(-1px);
+      }
+    }
+    .control-btn:active:not(:disabled) {
+      transform: scale(0.96);
+      transition: var(--t-press);
     }
 
     /* ── States ── */
@@ -112,9 +128,11 @@ import { LayoutService } from '../../core/services/layout.service';
       background: var(--text-primary);
       color: var(--bg-surface);
     }
-    .ptt-toggle.ptt-active:hover:not(:disabled) {
-      background: var(--text-secondary);
-      color: var(--bg-surface);
+        @media (hover: hover) and (pointer: fine) {
+      .ptt-toggle.ptt-active:hover:not(:disabled) {
+        background: var(--text-secondary);
+        color: var(--bg-surface);
+      }
     }
     .control-btn:disabled {
       opacity: 0.5;
@@ -144,6 +162,11 @@ import { LayoutService } from '../../core/services/layout.service';
     .mode-label.ptt {
       color: var(--text-primary);
     }
+    /* Listen-only is a constraint, not a mode: it reads in the failure color
+       so "you cannot be heard" is legible without reading the words. */
+    .mode-label.listen-only {
+      color: var(--error-500);
+    }
 
     .mt-2 { margin-top: 0.5rem; }
     .mt-6 { margin-top: 1.5rem; }
@@ -165,7 +188,10 @@ import { LayoutService } from '../../core/services/layout.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                  border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                  transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                  box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: var(--shadow-md);
     }
     .inner-circle {
@@ -178,6 +204,10 @@ import { LayoutService } from '../../core/services/layout.service';
       justify-content: center;
       gap: 8px;
       color: var(--text-muted);
+    }
+    .mobile-ptt-btn:active {
+      transform: scale(0.93);
+      transition: var(--t-press);
     }
     .mobile-ptt-btn.transmitting {
       background: var(--text-primary);
@@ -208,6 +238,12 @@ export class VoiceControlsComponent {
   isListenOnly = computed(() => this.participantService.localParticipant()?.isListenOnly ?? false);
 
   isMobile = this.layoutService.isMobile;
+
+  /** Listen-only outranks PTT: a user with no microphone is in neither mode. */
+  modeLabel = computed(() => {
+    if (this.isListenOnly()) return 'Listen-only';
+    return this.isPttMode() ? 'PTT Mode' : 'Open Mic';
+  });
 
   toggleMute()     { this.hapticFeedback(); this.webrtcService.toggleMute(); }
   togglePttMode()  { this.hapticFeedback(); this.webrtcService.togglePttMode(); }

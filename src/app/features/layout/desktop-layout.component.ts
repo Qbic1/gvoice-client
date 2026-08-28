@@ -8,6 +8,7 @@ import { ParticipantService } from '../../core/services/participant.service';
 import { DisplayNameService } from '../../core/services/display-name.service';
 import { WebRtcService } from '../../core/services/webrtc.service';
 import { ScreenShareOverlayComponent } from '../room/screen-share-overlay.component';
+import { ConnectionPillComponent } from '../../shared/components/connection-pill.component';
 
 @Component({
   selector: 'app-desktop-layout',
@@ -16,8 +17,9 @@ import { ScreenShareOverlayComponent } from '../room/screen-share-overlay.compon
     CommonModule, 
     ParticipantListComponent, 
     VoiceControlsComponent, 
-    ChatComponent, 
-    ScreenShareOverlayComponent
+    ChatComponent,
+    ScreenShareOverlayComponent,
+    ConnectionPillComponent
   ],
   template: `
     <div class="room-container">
@@ -36,33 +38,35 @@ import { ScreenShareOverlayComponent } from '../room/screen-share-overlay.compon
             [class.active]="isLocalSharing()" 
             [disabled]="isAnyScreenSharing() && !isLocalSharing()"
             (click)="toggleScreenShare()" 
+            [attr.aria-label]="isLocalSharing() ? 'Stop sharing your screen' : 'Share your screen'"
             [title]="isLocalSharing() ? 'Stop Sharing' : 'Share Screen'">
             <span class="icon" [innerHTML]="icons.SCREEN_SHARE"></span>
           </button>
 
-          <button class="icon-btn" (click)="onRejoin.emit()" title="Back to Lobby">
+          <button type="button" class="icon-btn" (click)="onRejoin.emit()" aria-label="Back to lobby" title="Back to Lobby">
             <span class="icon" [innerHTML]="icons.HOME"></span>
           </button>
-          <button class="icon-btn" (click)="onShowSettings.emit()" title="Settings">
+          <button type="button" class="icon-btn" (click)="onShowSettings.emit()" aria-label="Settings" title="Settings">
             <span class="icon" [innerHTML]="icons.SETTINGS"></span>
           </button>
         </div>
       </header>
 
       <div class="main-layout">
-        <aside class="sidebar">
-          <div class="sidebar-section">
-            <app-participant-list (onWatchStream)="watchStream($event)"></app-participant-list>
+        <!-- Presence is read at a glance, not studied: the roster needs enough
+             width for legible cards, not the largest share of the screen. Ten
+             people fit in one or two columns, so the space goes to chat. -->
+        <aside class="roster-panel">
+          <div class="roster-scroll">
+            <app-participant-list (onWatchStream)="watchStream($event)" (onRejoin)="onRejoin.emit()"></app-participant-list>
           </div>
-          <div class="sidebar-footer">
+          <div class="controls-bar">
             <app-voice-controls></app-voice-controls>
-            <div class="connection-pill">
-              <span class="dot"></span> Connected
-            </div>
+            <app-connection-pill></app-connection-pill>
           </div>
         </aside>
 
-        <section class="content-area">
+        <section class="chat-area">
           <app-chat></app-chat>
         </section>
       </div>
@@ -133,24 +137,27 @@ import { ScreenShareOverlayComponent } from '../room/screen-share-overlay.compon
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       padding: 0;
       background: var(--bg-base);
       color: var(--text-secondary);
       border: 1px solid var(--border);
       border-radius: 0.5rem;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
     }
-    .icon-btn:hover {
-      background: var(--bg-muted);
-      color: var(--text-primary);
-      border-color: var(--accent);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .icon-btn:hover {
+        background: var(--bg-muted);
+        color: var(--text-primary);
+        border-color: var(--accent);
+      }
     }
     .icon-btn.active {
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border-color: var(--accent);
     }
     .icon-btn:disabled {
@@ -167,61 +174,46 @@ import { ScreenShareOverlayComponent } from '../room/screen-share-overlay.compon
       overflow: hidden;
     }
 
-    .sidebar {
-      width: 320px;
-      background: var(--bg-surface);
-      border-right: 1px solid var(--border);
+    /* Sized to hold one or two participant cards comfortably and no more; it
+       stops growing once a second column fits, so a wide screen spends its
+       extra width on the conversation. */
+    .roster-panel {
+      width: clamp(280px, 22%, 360px);
+      flex-shrink: 0;
       display: flex;
       flex-direction: column;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
     }
-    .sidebar-section {
+    .roster-scroll {
       flex: 1;
       overflow-y: auto;
-      padding: 1rem;
-    }
-    .sidebar-footer {
       padding: 1.25rem;
+    }
+    .controls-bar {
+      flex: 0 0 auto;
+      padding: 1rem 1.25rem 1.25rem;
       border-top: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
+      align-items: center;
+      gap: 0.75rem;
     }
 
-    .content-area {
+    .chat-area {
       flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       background: var(--bg-base);
     }
+    @media (max-width: 1100px) {
+      .roster-panel { width: clamp(260px, 28%, 320px); }
+      .roster-scroll { padding: 1rem; }
+    }
 
-    /* ── Connection pill ── */
-    .connection-pill {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--success-500);
-      align-self: center;
-      padding: 0.25rem 0.75rem;
-      background: color-mix(in srgb, var(--success-500) 15%, var(--bg-surface));
-      border-radius: 9999px;
-      border: 1px solid color-mix(in srgb, var(--success-500) 25%, transparent);
-    }
-    .dot {
-      width: 8px;          /* was 6px — slightly bigger so it's not invisible */
-      height: 8px;
-      min-width: 8px;      /* prevent flex from squishing it */
-      min-height: 8px;
-      background: var(--success-500);
-      border-radius: 50%;
-      display: block;      /* ensure it renders as a block, not inline */
-      animation: blink 2s infinite;
-    }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.4; }
-    }
+    /* The connection readout lives in app-connection-pill; it owns its own
+       styles so the two shells cannot drift apart. */
   `]
 })
 export class DesktopLayoutComponent {

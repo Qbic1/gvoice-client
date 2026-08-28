@@ -1,5 +1,6 @@
 import { Component, inject, signal, HostListener, Output, EventEmitter, Input, ViewChild, ElementRef, AfterViewInit, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FocusTrapDirective } from '../../shared/directives/focus-trap.directive';
 import { SettingsService } from '../../core/services/settings.service';
 import { AudioProcessorService } from '../../core/services/audio-processor.service';
 import { WebRtcService } from '../../core/services/webrtc.service';
@@ -10,15 +11,20 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FocusTrapDirective],
   template: `
     <div [class.modal-overlay]="!isInline" (click)="close()">
-      <div [class.modal-card]="!isInline" [class.inline-card]="isInline" (click)="$event.stopPropagation()">
+      <div [class.modal-card]="!isInline" [class.inline-card]="isInline"
+           [attr.role]="isInline ? null : 'dialog'"
+           [attr.aria-modal]="isInline ? null : 'true'"
+           [attr.aria-labelledby]="isInline ? null : 'settings-title'"
+           appFocusTrap [focusTrapDisabled]="isInline"
+           (click)="$event.stopPropagation()">
 
         <!-- Header -->
         <header class="modal-header" *ngIf="!isInline">
-          <h3>Voice Settings</h3>
-          <button class="close-btn" (click)="close()">×</button>
+          <h3 id="settings-title">Voice Settings</h3>
+          <button type="button" class="close-btn" aria-label="Close settings" (click)="close()">×</button>
         </header>
 
         <!-- Tabs -->
@@ -66,9 +72,9 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
                     (click)="themeService.setTheme(t.id)"
                     [title]="t.label"
                   >
-                    <span class="chip-swatch">
-                      <span class="chip-bg"     [style.background]="t.swatches[0]"></span>
-                      <span class="chip-accent" [style.background]="t.swatches[1]"></span>
+                    <span class="chip-swatch" [attr.data-theme]="t.id">
+                      <span class="chip-bg"></span>
+                      <span class="chip-accent"></span>
                     </span>
                     <span class="chip-icon">{{ t.icon }}</span>
                     <span class="chip-label">{{ t.label }}</span>
@@ -84,9 +90,9 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
                     (click)="themeService.setTheme(t.id)"
                     [title]="t.label"
                   >
-                    <span class="chip-swatch">
-                      <span class="chip-bg"     [style.background]="t.swatches[0]"></span>
-                      <span class="chip-accent" [style.background]="t.swatches[1]"></span>
+                    <span class="chip-swatch" [attr.data-theme]="t.id">
+                      <span class="chip-bg"></span>
+                      <span class="chip-accent"></span>
                     </span>
                     <span class="chip-icon">{{ t.icon }}</span>
                     <span class="chip-label">{{ t.label }}</span>
@@ -99,9 +105,9 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
             <div class="theme-preview">
               <div class="preview-label">Active theme</div>
               <div class="preview-badge">
-                <span class="preview-swatch">
-                  <span [style.background]="currentTheme().swatches[0]" style="width:50%;height:100%"></span>
-                  <span [style.background]="currentTheme().swatches[1]" style="width:50%;height:100%"></span>
+                <span class="preview-swatch" [attr.data-theme]="currentTheme().id">
+                  <span class="chip-bg"></span>
+                  <span class="chip-accent"></span>
                 </span>
                 {{ currentTheme().icon }} {{ currentTheme().label }}
               </div>
@@ -293,9 +299,12 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
     }
-    .close-btn:hover { background: var(--border); color: var(--text-primary); }
+    
+    @media (hover: hover) and (pointer: fine) {
+        .close-btn:hover { background: var(--border); color: var(--text-primary); }
+    }
 
     /* ── Tabs ── */
     .tabs {
@@ -319,10 +328,13 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
       border-bottom: 2px solid transparent;
       margin-bottom: -1px;
       border-radius: 6px 6px 0 0;
-      transition: all 0.15s;
+      transition: var(--t-interactive-fast);
       font-family: var(--font-family);
     }
-    .tab:hover { color: var(--text-secondary); background: var(--bg-muted); }
+    
+    @media (hover: hover) and (pointer: fine) {
+        .tab:hover { color: var(--text-secondary); background: var(--bg-muted); }
+    }
     .tab.active {
       color: var(--accent);
       border-bottom-color: var(--accent);
@@ -393,10 +405,17 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
       border: 1.5px solid var(--border);
       background: var(--bg-base);
       cursor: pointer;
-      transition: all 0.15s;
+      transition: var(--t-interactive-fast);
       color: var(--text-primary);
     }
-    .theme-chip:hover { border-color: var(--accent); transform: translateY(-1px); }
+    
+    @media (hover: hover) and (pointer: fine) {
+        .theme-chip:hover { border-color: var(--accent); transform: translateY(-1px); }
+    }
+    .theme-chip:active {
+      transform: scale(0.97);
+      transition: var(--t-press);
+    }
     .theme-chip.active {
       border-color: var(--accent);
       background: var(--accent-subtle);
@@ -411,8 +430,10 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
       border: 1.5px solid rgba(0,0,0,0.08);
       flex-shrink: 0;
     }
-    .chip-bg     { width: 50%; height: 100%; }
-    .chip-accent { width: 50%; height: 100%; }
+    /* Colors come from the cascade: the swatch carries data-theme, so these
+       resolve to that theme's own tokens rather than a copied literal. */
+    .chip-bg     { width: 50%; height: 100%; background: var(--bg-base); }
+    .chip-accent { width: 50%; height: 100%; background: var(--accent); }
     .chip-icon   { font-size: 0.75rem; line-height: 1; }
     .chip-label {
       font-size: 0.58rem;
@@ -502,8 +523,12 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
       border-radius: 3px;
       appearance: none;
       background: var(--bg-muted);
-      outline: none;
       cursor: pointer;
+    }
+    /* Offset clears the thumb, which overhangs the 6px track. */
+    input[type="range"]:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 6px;
     }
     input[type="range"]::-webkit-slider-thumb {
       appearance: none;
@@ -583,9 +608,12 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
       align-items: center;
       gap: 0.5rem;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
     }
-    .rebind-control:hover { border-color: var(--accent); background: var(--accent-subtle); }
+    
+    @media (hover: hover) and (pointer: fine) {
+        .rebind-control:hover { border-color: var(--accent); background: var(--accent-subtle); }
+    }
     .rebind-control.recording {
       border-color: var(--accent);
       border-style: solid;
@@ -618,8 +646,7 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
       font-size: 0.9rem;
       font-weight: 600;
       cursor: pointer;
-      outline: none;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
     }
     .device-select:focus {
       border-color: var(--accent);
@@ -670,17 +697,20 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
     }
     .btn-primary {
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       border: none;
       padding: 0.625rem 1.5rem;
       border-radius: 8px;
       font-weight: 700;
       font-size: 0.875rem;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
       font-family: var(--font-family);
     }
-    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    
+    @media (hover: hover) and (pointer: fine) {
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    }
     .btn-danger-soft {
       display: inline-flex;
       align-items: center;
@@ -693,11 +723,14 @@ type Tab = 'theme' | 'audio' | 'controls' | 'devices';
       font-size: 0.8125rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
       font-family: var(--font-family);
     }
-    .btn-danger-soft:hover {
-      background: color-mix(in srgb, var(--error-500) 8%, transparent);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .btn-danger-soft:hover {
+        background: color-mix(in srgb, var(--error-500) 8%, transparent);
+      }
     }
 
     @keyframes fadeIn {
@@ -898,6 +931,13 @@ export class SettingsComponent implements AfterViewInit, OnDestroy, OnInit {
       if (event.key === 'Escape') { this.isRecording.set(false); return; }
       this.settingsService.savePttKey(event.code);
       this.isRecording.set(false);
+      return;
+    }
+    // As a modal, Escape must dismiss it. Inline (the mobile Settings tab) is
+    // not a modal — it is the panel itself — so Escape does nothing there.
+    if (event.key === 'Escape' && !this.isInline) {
+      event.preventDefault();
+      this.close();
     }
   }
 

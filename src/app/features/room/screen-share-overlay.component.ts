@@ -1,21 +1,24 @@
-import { Component, Input, Output, EventEmitter, inject, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FocusTrapDirective } from '../../shared/directives/focus-trap.directive';
 import { IconService } from '../../core/services/icon.service';
 
 @Component({
   selector: 'app-screen-share-overlay',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FocusTrapDirective],
   template: `
     <div class="overlay-backdrop" (click)="close()">
-      <div class="overlay-content" (click)="$event.stopPropagation()">
+      <div class="overlay-content" role="dialog" aria-modal="true"
+           aria-label="Shared screen" appFocusTrap
+           (click)="$event.stopPropagation()">
         <video #videoPlayer autoplay muted playsinline [srcObject]="stream"></video>
         
         <div class="overlay-actions">
-          <button class="action-btn" (click)="toggleFullscreen()" title="Toggle Fullscreen">
+          <button type="button" class="action-btn" (click)="toggleFullscreen()" aria-label="Toggle fullscreen" title="Toggle Fullscreen">
             <span class="icon" [innerHTML]="icons.FULLSCREEN"></span>
           </button>
-          <button class="action-btn close-btn" (click)="close()" title="Close">
+          <button type="button" class="action-btn close-btn" (click)="close()" aria-label="Close shared screen" title="Close">
             <span class="icon" [innerHTML]="icons.CLOSE"></span>
           </button>
         </div>
@@ -98,16 +101,26 @@ import { IconService } from '../../core/services/icon.service';
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--t-interactive);
       backdrop-filter: blur(8px);
     }
-    .action-btn:hover {
-      background: rgba(255, 255, 255, 0.25);
-      transform: scale(1.05);
+    
+    @media (hover: hover) and (pointer: fine) {
+      .action-btn:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: scale(1.05);
+      }
     }
-    .close-btn:hover {
-      background: var(--error-500);
-      border-color: var(--error-500);
+    
+    @media (hover: hover) and (pointer: fine) {
+        /* The overlay draws its own near-black ground regardless of theme, so this
+        one control is pinned rather than themed: --error-500 lightens in the
+        dark themes, and white-on-light-red would drop to ~2.5:1 here. */
+      .close-btn:hover {
+        background: #b91c1c;
+        border-color: #b91c1c;
+        color: #ffffff;
+      }
     }
     @media (max-width: 768px) {
       .overlay-actions {
@@ -129,6 +142,10 @@ import { IconService } from '../../core/services/icon.service';
   `]
 })
 export class ScreenShareOverlayComponent {
+  /** A full-screen overlay must be dismissible from the keyboard. */
+  @HostListener('document:keydown.escape')
+  onEscape() { this.closeOverlay.emit(); }
+
   icons = inject(IconService);
   
   @Input({ required: true }) stream!: MediaStream;
