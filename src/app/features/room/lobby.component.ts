@@ -3,7 +3,7 @@ import { avatarColor } from '../../shared/avatar-palette';
 import { CommonModule } from '@angular/common';
 import { FocusTrapDirective } from '../../shared/directives/focus-trap.directive';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { SignalRService, RoomInfo } from '../../core/services/signalr.service';
 import { AdminService } from '../../core/services/admin.service';
@@ -11,7 +11,7 @@ import { AdminService } from '../../core/services/admin.service';
 @Component({
   selector: 'app-lobby',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, FocusTrapDirective],
+  imports: [CommonModule, FormsModule, FocusTrapDirective],
   template: `
     <div class="lobby-page">
 
@@ -43,14 +43,14 @@ import { AdminService } from '../../core/services/admin.service';
                 <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
               </svg>
             </button>
-            <button *ngIf="!adminService.isAdmin()" (click)="openAdminLogin()" class="secondary-btn">
+            <button *ngIf="!adminService.isAdmin()" (click)="openAdminLogin()" class="secondary-btn" aria-label="Admin" title="Admin">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
               <span class="btn-label">Admin</span>
             </button>
-            <button *ngIf="adminService.isAdmin()" (click)="showCreateRoom.set(true)" class="primary-btn">
+            <button *ngIf="adminService.isAdmin()" (click)="showCreateRoom.set(true)" class="primary-btn" aria-label="Create room" title="Create room">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
@@ -93,10 +93,11 @@ import { AdminService } from '../../core/services/admin.service';
                 {{ room.name.charAt(0).toUpperCase() }}
               </div>
               <div class="room-info">
-                <h3><a class="room-link"
-                       [routerLink]="['/room', room.id]"
+                <h3><button class="room-link"
+                       type="button"
+                       (click)="joinRoom(room.id)"
                        [attr.aria-label]="'Join ' + room.name + ', ' + room.participantCount + ' of 10 people'"
-                    >{{ room.name }}</a></h3>
+                    >{{ room.name }}</button></h3>
                 <div class="room-meta">
                   <div class="capacity-bar">
                     <div
@@ -272,12 +273,15 @@ import { AdminService } from '../../core/services/admin.service';
     @media (min-width: 600px) {
       .lobby-header { padding: 1.5rem 0 2rem; margin-bottom: 2rem; }
     }
+    /* The brand yields first: it may ellipsis, but it must never push the
+       header actions past the right edge of the screen. */
     .brand {
       display: flex;
       align-items: center;
       gap: 0.6rem;
-      flex-shrink: 0;
+      flex: 0 1 auto;
       min-width: 0;
+      overflow: hidden;
     }
     .brand-logo {
       width: 34px;
@@ -306,6 +310,8 @@ import { AdminService } from '../../core/services/admin.service';
       color: var(--text-primary);
       letter-spacing: -0.03em;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .brand-tag {
       font-size: 0.6rem;
@@ -313,6 +319,9 @@ import { AdminService } from '../../core/services/admin.service';
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.08em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     @media (min-width: 600px) {
       .brand-logo { width: 38px; height: 38px; font-size: 1rem; }
@@ -397,9 +406,6 @@ import { AdminService } from '../../core/services/admin.service';
       display: block;
       animation: blink 2s infinite;
     }
-    @media (max-width: 360px) {
-      .rooms-label { display: none; }
-    }
     @keyframes blink {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.3; }
@@ -467,10 +473,24 @@ import { AdminService } from '../../core/services/admin.service';
         color: var(--accent);
       }
     }
-    /* Icon-only on very small screens */
-    @media (max-width: 380px) {
+    /* Below the 600px layout switch the header cannot afford prose: the badge
+       drops to its dot-and-count pill and the buttons go icon-only, which is
+       what keeps Admin / Create Room inside the viewport on a phone. Their
+       accessible names come from aria-label, since display:none would take the
+       .btn-label text out of the accessibility tree with it. */
+    @media (max-width: 599px) {
+      .lobby-header, .header-right { gap: 0.375rem; }
+      .rooms-label { display: none; }
+      .rooms-badge { padding: 0 0.625rem; margin-right: 0; }
       .btn-label { display: none; }
       .primary-btn, .secondary-btn { padding: 0.5rem 0.625rem; }
+      .text-btn { padding: 0.5rem 0.25rem; }
+    }
+    /* Narrowest phones: with an admin's three controls in the row, the pill is
+       the one thing here that isn't a target, so it goes rather than let the
+       brand ellipsis. */
+    @media (max-width: 359px) {
+      .rooms-badge { display: none; }
     }
     .ghost-btn {
       background: none;
@@ -596,9 +616,20 @@ import { AdminService } from '../../core/services/admin.service';
       flex-shrink: 0;
     }
 
-    /* The link covers the whole card, so the card stays one target while the
-       info button remains a separate, reachable control above it. */
+    /* The room name is the card's target: it stretches over the whole card, so
+       the card is one target while the info button stays a separate, reachable
+       control above it. It's a button rather than an <a href> because an href
+       under a target this large parks the room URL in the browser's status bar
+       on every hover over the card or its Join affordance. */
     .room-link {
+      appearance: none;
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
       color: inherit;
       text-decoration: none;
       outline-offset: 4px;
@@ -1033,6 +1064,10 @@ export class LobbyComponent implements OnInit, OnDestroy {
       this.activeRoomId.set(roomId);
       this.activeParticipants.set(await this.signalrService.fetchRoomParticipants(roomId));
     }
+  }
+
+  joinRoom(roomId: string) {
+    this.router.navigate(['/room', roomId]);
   }
 
   getRoomColor(name: string): string {
