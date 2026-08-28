@@ -107,11 +107,12 @@ import { ParticipantCardComponent } from './participant-card.component';
       font-weight: 600;
     }
 
+    /* One column, in both shells. A roster of at most ten is read top to
+       bottom; a second column buys nothing and costs the chat its width. */
     .cards-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      display: flex;
+      flex-direction: column;
       gap: 0.5rem;
-      align-content: start;
     }
 
     /* ── Volume overlay ── */

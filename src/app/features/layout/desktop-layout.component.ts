@@ -178,7 +178,7 @@ import { ConnectionPillComponent } from '../../shared/components/connection-pill
        stops growing once a second column fits, so a wide screen spends its
        extra width on the conversation. */
     .roster-panel {
-      width: clamp(300px, 26%, 480px);
+      width: clamp(280px, 22%, 360px);
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
@@ -208,7 +208,7 @@ import { ConnectionPillComponent } from '../../shared/components/connection-pill
       background: var(--bg-base);
     }
     @media (max-width: 1100px) {
-      .roster-panel { width: clamp(280px, 30%, 360px); }
+      .roster-panel { width: clamp(260px, 28%, 320px); }
       .roster-scroll { padding: 1rem; }
     }
 
