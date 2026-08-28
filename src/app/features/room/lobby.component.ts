@@ -590,10 +590,22 @@ import { AdminService } from '../../core/services/admin.service';
       position: relative;
       z-index: 1;
     }
-
-    .info-btn {
+    /* The drawn button is 32px; the target is 44px. Pointer events land on the
+       pseudo-element, so the control stays comfortable to hit without becoming
+       a 44px slab on a 82px card. */
+    .info-btn::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
       width: 44px;
       height: 44px;
+      transform: translate(-50%, -50%);
+    }
+
+    .info-btn {
+      width: 32px;
+      height: 32px;
       border-radius: 8px;
       border: 1.5px solid var(--border);
       background: var(--bg-base);
@@ -667,12 +679,11 @@ import { AdminService } from '../../core/services/admin.service';
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.35rem;
-      font-size: 0.8125rem;
+      gap: 0.3rem;
+      font-size: 0.75rem;
       font-weight: 700;
-      padding: 0 1rem;
-      min-height: 44px;
-      min-width: 88px;
+      padding: 0 0.75rem;
+      height: 32px;
       border-radius: 8px;
       border: 1.5px solid var(--border);
       color: var(--text-secondary);

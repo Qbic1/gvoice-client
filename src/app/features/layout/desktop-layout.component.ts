@@ -53,19 +53,21 @@ import { ConnectionPillComponent } from '../../shared/components/connection-pill
       </header>
 
       <div class="main-layout">
-        <aside class="sidebar">
-          <div class="sidebar-section">
+        <!-- Presence is the room's primary job, so it owns the room. Chat is a
+             capability alongside it, not the stage. -->
+        <section class="roster-area">
+          <div class="roster-scroll">
             <app-participant-list (onWatchStream)="watchStream($event)" (onRejoin)="onRejoin.emit()"></app-participant-list>
           </div>
-          <div class="sidebar-footer">
+          <div class="controls-bar">
             <app-voice-controls></app-voice-controls>
             <app-connection-pill></app-connection-pill>
           </div>
-        </aside>
-
-        <section class="content-area">
-          <app-chat></app-chat>
         </section>
+
+        <aside class="chat-rail">
+          <app-chat></app-chat>
+        </aside>
       </div>
 
       <app-screen-share-overlay
@@ -171,31 +173,42 @@ import { ConnectionPillComponent } from '../../shared/components/connection-pill
       overflow: hidden;
     }
 
-    .sidebar {
-      width: 320px;
-      background: var(--bg-surface);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-    }
-    .sidebar-section {
+    .roster-area {
       flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-    }
-    .sidebar-footer {
-      padding: 1.25rem;
-      border-top: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
-    }
-
-    .content-area {
-      flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       background: var(--bg-base);
+    }
+    .roster-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+    }
+    .controls-bar {
+      flex: 0 0 auto;
+      padding: 1rem 1.5rem 1.25rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-surface);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .chat-rail {
+      width: 360px;
+      flex-shrink: 0;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    /* Below this the rail crowds the roster; chat narrows first. */
+    @media (max-width: 1180px) {
+      .chat-rail { width: 300px; }
+      .roster-scroll { padding: 1rem; }
     }
 
     /* The connection readout lives in app-connection-pill; it owns its own

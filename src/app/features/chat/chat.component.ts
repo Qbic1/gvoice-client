@@ -14,6 +14,18 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
   template: `
     <div class="chat-container">
       <div class="messages-list" #scrollContainer>
+        <!-- An empty chat used to render as a blank rectangle with no
+             explanation at all. -->
+        <div *ngIf="messages().length === 0" class="chat-empty">
+          <span class="empty-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </span>
+          <p class="empty-title">No messages yet</p>
+          <p class="empty-sub">Share a link or drop a note — everyone in the room sees it.</p>
+        </div>
+
         <div *ngFor="let msg of messages()" class="message-wrapper" [class.local-wrapper]="msg.isLocal">
           <div class="message-item" [class.local-message]="msg.isLocal">
             <div class="msg-header">
@@ -89,9 +101,48 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       flex-direction: column;
       gap: 1rem;
       background: var(--bg-base);
+      min-height: 0;
     }
     @media (max-width: 768px) {
       .messages-list { padding: 1rem; }
+    }
+
+    /* Matches the lobby's empty state: dashed edge, muted mark, short measure. */
+    .chat-empty {
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0.25rem;
+      padding: 1.75rem 1.25rem;
+      max-width: 280px;
+      border: 1.5px dashed var(--border);
+      border-radius: 14px;
+      background: var(--bg-surface);
+    }
+    .empty-mark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      margin-bottom: 0.25rem;
+      border-radius: 12px;
+      background: var(--bg-muted);
+      color: var(--text-muted);
+    }
+    .empty-title {
+      margin: 0;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .empty-sub {
+      margin: 0;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      color: var(--text-muted);
     }
 
     .message-wrapper {

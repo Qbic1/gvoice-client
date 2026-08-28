@@ -47,6 +47,7 @@ import { avatarColor } from '../../shared/avatar-palette';
       border: 1px solid var(--border);
       border-radius: 0.625rem;
       padding: 0.75rem;
+      min-width: 0;
       display: flex;
       align-items: center;
       gap: 0.75rem;
@@ -59,6 +60,11 @@ import { avatarColor } from '../../shared/avatar-palette';
         border-color: var(--accent);
         background: var(--accent-subtle);
       }
+    }
+    /* Speaking, stated without motion: the ring animates, this does not. */
+    .participant-card.speaking {
+      border-color: var(--success-500);
+      background: color-mix(in srgb, var(--success-500) 8%, var(--bg-surface));
     }
     .local-user {
       background: var(--accent-subtle);
@@ -74,25 +80,26 @@ import { avatarColor } from '../../shared/avatar-palette';
     }
 
     .avatar {
-      width: 38px;
-      height: 38px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #fff;
       font-weight: 600;
-      font-size: 1rem;
+      font-size: 1.0625rem;
       position: relative;
       flex-shrink: 0;
     }
+    /* One ring, not two: this used to set both border and outline in the same
+       color, drawing a doubled 4px edge. */
     .speaking-ring {
       position: absolute;
       top: -3px; left: -3px; right: -3px; bottom: -3px;
-      border: 2px solid var(--success-500);
+      border: 3px solid var(--success-500);
       border-radius: 50%;
       animation: pulse-ring 1.5s cubic-bezier(0.24, 0, 0.38, 1) infinite;
-      outline: 2px solid var(--success-500);
     }
     @keyframes pulse-ring {
       0%   { transform: scale(0.95); opacity: 1; }

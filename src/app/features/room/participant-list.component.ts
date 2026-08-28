@@ -108,9 +108,10 @@ import { ParticipantCardComponent } from './participant-card.component';
     }
 
     .cards-grid {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
       gap: 0.5rem;
+      align-content: start;
     }
 
     /* ── Volume overlay ── */
