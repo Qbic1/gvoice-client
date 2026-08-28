@@ -43,6 +43,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       </div>
 
       <form (submit)="sendMessage($event)" class="chat-input-form">
+        <div class="composer">
         <input
           type="text"
           aria-label="Message"
@@ -58,6 +59,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
           </svg>
         </button>
+        </div>
       </form>
 
       <!-- Lightbox -->
@@ -72,6 +74,8 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       display: block;
       height: 100%;
       min-height: 0;
+      /* The reading column, shared by the message list and the composer. */
+      --chat-measure: 1040px;
     }
 
     .chat-container {
@@ -150,7 +154,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
       flex-direction: column;
       align-items: flex-start;
       width: 100%;
-      max-width: 860px;
+      max-width: var(--chat-measure);
       margin-inline: auto;
     }
     .local-wrapper {
@@ -159,7 +163,7 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
 
     /* Remote bubble */
     .message-item {
-      max-width: min(75%, 560px);
+      max-width: min(72%, 620px);
       padding: 0.75rem 1rem;
       border-radius: 12px;
       border-bottom-left-radius: 2px;
@@ -227,14 +231,19 @@ import { LinkifyPipe } from '../../shared/pipes/linkify.pipe';
 
     /* ── Input ── */
     .chat-input-form {
-      display: flex;
+      display: block;
       width: 100%;
-      max-width: 892px;
-      margin-inline: auto;
-      padding: 1rem;
+      padding: 1rem 1.5rem;
       background: var(--bg-surface);
       border-top: 1px solid var(--border);
+    }
+    /* Same column as the messages above, so the field lines up with them. */
+    .composer {
+      display: flex;
       gap: 0.75rem;
+      width: 100%;
+      max-width: var(--chat-measure);
+      margin-inline: auto;
     }
     .chat-input-form input {
       flex: 1;
