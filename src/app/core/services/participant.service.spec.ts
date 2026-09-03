@@ -15,6 +15,7 @@ class MockSignalRService {
   peerJoined$ = new Subject<Participant>();
   peerLeft$ = new Subject<{ connectionId: string; displayName: string }>();
   peerStateUpdated$ = new Subject<{ connectionId: string; stateType: string; value: boolean }>();
+  avatarUpdated$ = new Subject<{ connectionId: string; avatar: string }>();
   connectionId = signal<string | null>(null);
 }
 
@@ -144,5 +145,29 @@ describe('ParticipantService', () => {
 
     expect(service.participants()[0].volume).toBe(150);
     expect(localStorage.getItem('gv_vol_Alice')).toBe('150');
+  });
+
+  it('applies AvatarUpdated to the named participant only', () => {
+    signalr.roomJoined$.next({
+      name: 'general',
+      participants: [
+        makeParticipant({ connectionId: '1', displayName: 'Alice' }),
+        makeParticipant({ connectionId: '2', displayName: 'Bob' }),
+      ],
+    });
+
+    signalr.avatarUpdated$.next({ connectionId: '2', avatar: 'drunk' });
+
+    expect(service.participants().find(p => p.connectionId === '1')?.avatar).toBeUndefined();
+    expect(service.participants().find(p => p.connectionId === '2')?.avatar).toBe('drunk');
+  });
+
+  it('carries the avatar in from the roomJoined snapshot', () => {
+    signalr.roomJoined$.next({
+      name: 'general',
+      participants: [makeParticipant({ connectionId: '1', avatar: 'sly' })],
+    });
+
+    expect(service.participants()[0].avatar).toBe('sly');
   });
 });
