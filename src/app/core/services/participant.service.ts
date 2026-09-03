@@ -48,6 +48,12 @@ export class ParticipantService {
       this.participants.update(list => list.filter(p => p.connectionId !== peer.connectionId));
     });
 
+    this.signalrService.avatarUpdated$.subscribe((update) => {
+      this.participants.update(list =>
+        list.map(p => p.connectionId === update.connectionId ? { ...p, avatar: update.avatar } : p)
+      );
+    });
+
     this.signalrService.peerStateUpdated$.subscribe((update) => {
       this.participants.update(list => {
         return list.map(p => {

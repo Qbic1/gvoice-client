@@ -363,13 +363,20 @@ fails the build on a violation — 120 pairs across the eight themes.
 
 ### Tertiary
 
-- **Avatar identity palette** (eight swatches, `#6368e7` `#cf3c85` `#845be7`
-  `#b45309` `#3273de` `#0f766e` `#0e7490` `#7e22ce`): the one place raw hex is
-  legitimate. A display name or room name is hashed to a stable index so the same
-  person is the same color for everyone, in every theme. Every swatch clears
-  4.5:1 with the white initials it carries, and the set contains **no green and
-  no red hue** — those carry state here, and a participant must never be tinted
-  the color that means "this person is speaking".
+- **Room identity palette** (eight swatches, `#6368e7` `#cf3c85` `#845be7`
+  `#b45309` `#3273de` `#0f766e` `#0e7490` `#7e22ce`): one of the two places raw
+  hex is legitimate. A room name is hashed to a stable index so the same room is
+  the same color for everyone, in every theme. Every swatch clears 4.5:1 with the
+  white initials it carries.
+- **Avatar identity palette** (ten `ink`/`skin` pairs in
+  `src/app/shared/avatars.ts`): the other. Deep tone for the portrait frame and
+  the card's tint, mid tone for the head. Muted on purpose — mean chroma near 33,
+  where the first attempt at 62 turned the roster into noise — and separated by a
+  minimum ΔE of 19 on ink and 18 on skin.
+- Neither set contains **any green or red hue**. Those carry state here, and a
+  participant must never be tinted the color that means "this person is speaking".
+  Excluding both leaves barely half the hue wheel, so in the avatar palette
+  lightness carries as much of the separation as hue does.
 - **Scrims** (`rgba(0,0,0,…)` at 0.5 / 0.6 / 0.7 / 0.9 / 0.92): overlay grounds,
   darkening with the weight of what they interrupt — a modal at 0.5, the
   full-screen image lightbox at 0.92.
@@ -378,8 +385,8 @@ fails the build on a violation — 120 pairs across the eight themes.
 
 **The Thirteen Tokens Rule.** No component may contain a raw color value. Every
 background, text color, and border resolves to one of the thirteen semantic
-variables. The only sanctioned exceptions are the avatar identity palette, the
-five scrims, and the screen-share overlay's close button — which draws on its own
+variables. The only sanctioned exceptions are the room and avatar identity
+palettes, the five scrims, and the screen-share overlay's close button — which draws on its own
 near-black ground regardless of theme and so is pinned rather than themed.
 
 **The Status Colors Adapt, Their Roles Do Not.** Success and error are redefined
@@ -400,9 +407,12 @@ on one background.
 element competing for attention at rest. The room card's Join chip fills with
 accent *on hover or press*, not at rest.
 
-**The Gate Runs.** `npm run check:contrast` verifies 120 token pairs across all
-eight themes plus the avatar palette. A ninth theme cannot ship with an
-unreadable pair. This is not advisory — it exits non-zero.
+**The Gate Runs.** `npm run check:contrast` verifies 140 pairs: the token pairs
+across all eight themes, the room palette against white initials, and each
+avatar's features-on-skin and skin-against-ink. It parses the avatar catalogue
+from source rather than holding a copy, because a duplicated palette is a palette
+that will disagree with itself. A ninth theme or an eleventh avatar cannot ship
+with an unreadable pair. This is not advisory — it exits non-zero.
 
 ## Typography
 
@@ -587,13 +597,51 @@ The signature component. Three 48px squares inside a **recessed tray** —
 
 ### Participant Card
 
-- 10px radius, 1px border, 44px hash-colored avatar with a white initial.
-- **Speaking** sets a 3px success ring pulsing around the avatar **and** turns the
-  card's border success with an 8% success fill — the state is legible with every
-  animation off.
-- **Local user** is permanently `--accent-subtle` and hover-inert.
+- 10px radius, 1px border, and a 44px **avatar portrait** on the squircle rung —
+  an SVG drawing, not an initial. The card reads its avatar's deep tone as
+  `--av-ink` and derives everything from it: a 14%→5% vertical tint, a 30% mix for
+  the border, and a **per-avatar motif** — an SVG `<pattern>` layer drawn about
+  that character: confetti for the cheerful one, damask for the pompous one,
+  crossbones for the sly one, barbed wire for the angry one, Z's for the sleepy
+  one. Drawn rather than generated from CSS gradients because gradients express
+  stripes and dots and nothing else, and ten cards of stripes read as one
+  wallpaper in ten colours. Its colour is the ink mixed 62% toward
+  `--text-primary`, so it lightens on dark grounds and darkens on light ones
+  without a second palette.
+- **Avatar name** rides the status row under the display name at `micro` weight in
+  `--text-muted`, and shrinks before the state glyphs do. It shares that row
+  rather than taking a line of its own: with ten cards in a column a third line
+  costs more than the label is worth.
+- **Speaking** sets a 3px success ring around the portrait (12px radius: the
+  portrait is a 9px squircle and the ring sits 3px outside it) **and** turns the
+  card's border success with an 8% success fill, replacing the avatar tint
+  outright. The state is legible with every animation off.
+- **Local user** is `--accent-subtle` — identity-of-self outranks the avatar tint,
+  because finding yourself in the roster matters more than displaying your face.
+  It is no longer hover-inert: the local card is the picker's entry point, and
+  carries `role="button"`, a tabindex and Enter/Space.
 - **Status row:** mute and deafen glyphs in error, a `Listen-only` badge, and a
   volume chip shown only when volume is not 100%.
+
+### Avatar Portrait
+
+Ten drawn characters, «уебища» in the UI and `avatar` in code. A portrait in a
+frame — deep ink ground, a large egg-shaped head cropped by the frame, shoulders
+at the bottom, near-black features — rather than a glyph on a disc.
+
+- **The prop is the identity.** A hat, a mustache, an eyepatch. At 44px a
+  silhouette survives and an expression does not, which is why the catalogue is
+  validated at rendered size, never at a comfortable zoom.
+- **Two tones, not one.** Features are dark, so the head must be light: `skin`
+  carries the face at ≥4.5:1 against `#2b2b2b`, and `ink` sits behind it at ≥2.2:1
+  so the head keeps a silhouette. This inverts the old white-on-color rule and is
+  what `check-contrast.mjs` now asserts.
+- **State on the face.** Speaking opens the mouth; muted sews it shut and drains
+  the palette to neutrals **while keeping the headwear** — strip a muted
+  participant of their prop and nobody can tell who they are; deafened closes the
+  eyes and adds a headphone band. Mute outranks speaking here as everywhere.
+- Motion is an amplifier only: the mouth and the blink both die under
+  `.app-background` and `prefers-reduced-motion`, and every state stays readable.
 
 ### Room Card
 
@@ -714,8 +762,8 @@ color and opacity transitions still carry meaning.
 
 ### Don't:
 
-- **Don't** write a raw hex value in a component. The avatar palette, the five
-  scrims and the pinned overlay close button are the only exceptions.
+- **Don't** write a raw hex value in a component. The room and avatar palettes,
+  the five scrims and the pinned overlay close button are the only exceptions.
 - **Don't** borrow a status color for anything that is not a state report, and
   don't put a green or red hue in the avatar palette.
 - **Don't** place more than one accent-filled element on a screen at rest.

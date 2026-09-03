@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
 import { DisplayNameService } from '../../core/services/display-name.service';
 import { SignalRService } from '../../core/services/signalr.service';
 import { WebRtcService } from '../../core/services/webrtc.service';
+import { AvatarService } from '../../core/services/avatar.service';
 import { ICONS } from '../../shared/icons';
 import { DomSanitizer } from '@angular/platform-browser';
 
@@ -242,6 +243,7 @@ export class JoinRoomComponent implements OnInit, OnDestroy {
   private displayNameService = inject(DisplayNameService);
   private signalrService = inject(SignalRService);
   private webrtcService = inject(WebRtcService);
+  private avatarService = inject(AvatarService);
   private sanitizer = inject(DomSanitizer);
 
   private readonly PWD_STORAGE_KEY_PREFIX = 'gvoice_pwd_';
@@ -342,7 +344,9 @@ export class JoinRoomComponent implements OnInit, OnDestroy {
         if (!stream) this.isListenOnly = true;
       }
 
-      await this.signalrService.joinRoom(this.roomId, this.roomPassword, name, this.isListenOnly);
+      // Avatar goes in with Join so nobody ever renders the default face first,
+      // and so the reconnect replay carries it without a separate broadcast.
+      await this.signalrService.joinRoom(this.roomId, this.roomPassword, name, this.isListenOnly, this.avatarService.avatarId());
     } catch (err) {
       console.error('Failed to join:', err);
       this.isConnecting = false;

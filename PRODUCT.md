@@ -124,8 +124,12 @@ the UI already say.
 
 - **The product name is "VoiceRoom."** This is locked. `gvoice` is an internal
   repo and localStorage-key prefix only and must never surface in the UI.
-- **UI language is English**, confirmed, and stays English. No i18n is planned;
-  future copy and layout may assume English string lengths.
+- **UI language is English**, with one deliberate exception: the participant
+  avatar feature ships in Russian, because it is built around a Russian word
+  («уебище») that has no translation worth making. Chrome elsewhere stays
+  English. No i18n framework is planned; copy and layout may still assume
+  English string lengths outside that feature. In code the feature is named
+  `avatar` throughout — the Russian word lives only in user-facing strings.
 - Assets on hand: `icons/icon.ico`, `icons/icon.png`. The typeface currently in
   use is Inter, loaded from Google Fonts.
 - No logo system, wordmark, brand guidelines, color commitments, or voice

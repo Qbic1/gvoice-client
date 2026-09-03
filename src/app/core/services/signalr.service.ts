@@ -26,6 +26,7 @@ export class SignalRService {
   public roomJoined$ = new ReplaySubject<{ name: string, participants: Participant[] }>(1);
   public receiveSignal$ = new Subject<{ fromConnectionId: string, signal: string }>();
   public peerStateUpdated$ = new Subject<{ connectionId: string, stateType: string, value: boolean }>();
+  public avatarUpdated$ = new Subject<{ connectionId: string, avatar: string }>();
   public roomFull$ = new Subject<void>();
   public invalidPassword$ = new Subject<void>();
   public roomNotFound$ = new Subject<void>();
@@ -49,7 +50,7 @@ export class SignalRService {
   disconnectReason = signal<string | null>(null);
 
   // Parameters of the last Join, replayed automatically after a reconnect.
-  private lastJoin: { roomId: string, roomPassword: string, displayName: string, isListenOnly: boolean } | null = null;
+  private lastJoin: { roomId: string, roomPassword: string, displayName: string, isListenOnly: boolean, avatar: string } | null = null;
   // True between the automatic re-Join and its RoomJoined reply. While set, a
   // rejection (room gone after a server restart, wrong password, room filled up)
   // is a terminal session error rather than input for the join form, which is
@@ -140,7 +141,7 @@ export class SignalRService {
       if (this.lastJoin) {
         this.rejoinPending = true;
         this.hubConnection
-          ?.invoke('Join', this.lastJoin.roomId, this.lastJoin.roomPassword, this.lastJoin.displayName, this.lastJoin.isListenOnly)
+          ?.invoke('Join', this.lastJoin.roomId, this.lastJoin.roomPassword, this.lastJoin.displayName, this.lastJoin.isListenOnly, this.lastJoin.avatar)
           .catch(err => {
             console.error('Re-join after reconnect failed:', err);
             this.fail('Reconnected to the server, but rejoining the room failed.');
@@ -169,6 +170,7 @@ export class SignalRService {
     });
     this.hubConnection.on('ReceiveSignal', (fromConnectionId: string, signal: string) => this.receiveSignal$.next({ fromConnectionId, signal }));
     this.hubConnection.on('PeerStateUpdated', (connectionId: string, stateType: string, value: boolean) => this.peerStateUpdated$.next({ connectionId, stateType, value }));
+    this.hubConnection.on('AvatarUpdated', (connectionId: string, avatar: string) => this.avatarUpdated$.next({ connectionId, avatar }));
     this.hubConnection.on('RoomFull', () => {
       if (this.failRejoin('The room filled up while you were disconnected.')) return;
       this.roomFull$.next();
@@ -245,11 +247,13 @@ export class SignalRService {
   }
 
 
-  async joinRoom(roomId: string, roomPassword: string, displayName: string, isListenOnly: boolean = false) {
+  async joinRoom(roomId: string, roomPassword: string, displayName: string, isListenOnly: boolean = false, avatar: string = '') {
     if (this.hubConnection?.state === signalR.HubConnectionState.Connected) {
       // Remember params so we can replay Join automatically after a reconnect.
-      this.lastJoin = { roomId, roomPassword, displayName, isListenOnly };
-      await this.hubConnection.invoke('Join', roomId, roomPassword, displayName, isListenOnly);
+      // The avatar travels here rather than through a post-reconnect broadcast:
+      // the replay restores it for free, with no window showing the default face.
+      this.lastJoin = { roomId, roomPassword, displayName, isListenOnly, avatar };
+      await this.hubConnection.invoke('Join', roomId, roomPassword, displayName, isListenOnly, avatar);
     } else {
       console.error('Cannot join room: SignalR is not connected.');
     }
@@ -276,6 +280,17 @@ export class SignalRService {
   async updateState(stateType: 'muted' | 'deafened' | 'sharingScreen', value: boolean) {
     if (this.hubConnection?.state === signalR.HubConnectionState.Connected) {
       await this.hubConnection.invoke('UpdateState', stateType, value);
+    }
+  }
+
+  /**
+   * Avatar gets its own hub method: UpdateState is typed (string, bool) and its
+   * server-side switch drops unknown keys, so a string value cannot ride on it.
+   */
+  async updateAvatar(avatar: string) {
+    if (this.hubConnection?.state === signalR.HubConnectionState.Connected) {
+      if (this.lastJoin) this.lastJoin = { ...this.lastJoin, avatar };
+      await this.hubConnection.invoke('UpdateAvatar', avatar);
     }
   }
 }

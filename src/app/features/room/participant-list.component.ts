@@ -8,11 +8,14 @@ import { WebRtcService } from '../../core/services/webrtc.service';
 import { IconService } from '../../core/services/icon.service';
 import { Participant } from '../../core/models/participant.model';
 import { ParticipantCardComponent } from './participant-card.component';
+import { AvatarPickerComponent } from './avatar-picker.component';
+import { AvatarService } from '../../core/services/avatar.service';
+import { AvatarId } from '../../shared/avatars';
 
 @Component({
   selector: 'app-participant-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ParticipantCardComponent, FocusTrapDirective],
+  imports: [CommonModule, FormsModule, ParticipantCardComponent, AvatarPickerComponent, FocusTrapDirective],
   template: `
     <div class="participant-list">
       <div class="list-header">
@@ -37,10 +40,17 @@ import { ParticipantCardComponent } from './participant-card.component';
           *ngFor="let p of participants()"
           [participant]="p"
           [isLocal]="p.connectionId === localConnectionId()"
-          (onCardClick)="openVolumeControl(p)"
+          (onCardClick)="onCardClick(p)"
           (onWatchStream)="onWatchStream.emit(p.connectionId)"
         ></app-participant-card>
       </div>
+
+      @if (pickerOpen()) {
+        <app-avatar-picker
+          [current]="avatarService.avatarId()"
+          (choose)="chooseAvatar($event)"
+          (dismiss)="closePicker()" />
+      }
 
       <!-- Volume Control Modal -->
       <div *ngIf="selectedParticipant()" class="volume-overlay" (click)="closeVolumeControl()">
@@ -316,10 +326,12 @@ export class ParticipantListComponent {
   private webrtcService = inject(WebRtcService);
   icons = inject(IconService);
   participantService = inject(ParticipantService);
+  avatarService = inject(AvatarService);
 
   participants = this.participantService.participants;
   localConnectionId = this.signalrService.connectionId;
   selectedParticipant = signal<Participant | null>(null);
+  pickerOpen = signal(false);
 
   isListenOnly = computed(() => this.participantService.localParticipant()?.isListenOnly ?? false);
 
@@ -332,9 +344,32 @@ export class ParticipantListComponent {
     if (this.selectedParticipant()) this.closeVolumeControl();
   }
 
+  /**
+   * The card click means two different things depending on whose card it is.
+   * Your own card was inert before this feature, which is what freed the slot;
+   * everyone else's keeps opening the volume dialog it already opened.
+   */
+  onCardClick(participant: Participant) {
+    if (participant.connectionId === this.localConnectionId()) {
+      this.pickerOpen.set(true);
+      return;
+    }
+    this.openVolumeControl(participant);
+  }
+
   openVolumeControl(participant: Participant) {
     if (participant.connectionId === this.localConnectionId()) return;
     this.selectedParticipant.set(participant);
+  }
+
+  chooseAvatar(id: AvatarId) {
+    this.avatarService.choose(id);
+    this.signalrService.updateAvatar(id);
+    this.closePicker();
+  }
+
+  closePicker() {
+    this.pickerOpen.set(false);
   }
 
   closeVolumeControl() {

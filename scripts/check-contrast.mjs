@@ -32,8 +32,19 @@ const ratio = (a, b) => {
   return (hi + 0.05) / (lo + 0.05);
 };
 
-// Avatar identity colors carry white initials; keep them in the gate too.
-const AVATAR = ['#6368e7', '#cf3c85', '#845be7', '#b45309', '#3273de', '#0f766e', '#0e7490', '#7e22ce'];
+// Room identity colors still carry white initials in the lobby; keep them here.
+const ROOM_AVATAR = ['#6368e7', '#cf3c85', '#845be7', '#b45309', '#3273de', '#0f766e', '#0e7490', '#7e22ce'];
+
+// Participant avatars are two-tone portraits, so the assertion is not the one
+// above. Features are drawn near-black on the *skin*, and the skin has to stay
+// separable from the *ink* frame behind it or the head loses its silhouette.
+// Parsed from the catalogue rather than copied: a duplicated palette is a
+// palette that will disagree with itself.
+const avatarsSrc = readFileSync(join(root, 'src/app/shared/avatars.ts'), 'utf8');
+const FEATURE_INK = (avatarsSrc.match(/FEATURE_INK\s*=\s*'(#[0-9a-fA-F]{6})'/) || [])[1];
+const AVATARS = [...avatarsSrc.matchAll(
+  /id:\s*'([a-z]+)'[^}]*?ink:\s*'(#[0-9a-fA-F]{6})',\s*skin:\s*'(#[0-9a-fA-F]{6})'/g
+)].map(m => ({ id: m[1], ink: m[2], skin: m[3] }));
 
 const themes = [];
 const blockRe = /(?:^|\n)(?::root,\s*\[data-theme="([\w-]+)"\]|\[data-theme="([\w-]+)"\])\s*\{([^}]*)\}/g;
@@ -95,14 +106,35 @@ for (const { name, vars } of themes) {
   }
 }
 
-// Avatar initials are always white, in every theme.
-const avatarBad = AVATAR.filter(c => ratio('#ffffff', c) < 4.5);
-checks += AVATAR.length;
+// Room avatar initials are always white, in every theme.
+const roomBad = ROOM_AVATAR.filter(c => ratio('#ffffff', c) < 4.5);
+checks += ROOM_AVATAR.length;
+if (roomBad.length) {
+  failures += roomBad.length;
+  console.error(`✗ room palette: white initials fail on ${roomBad.join(', ')}`);
+} else {
+  console.log(`✓ room palette (${ROOM_AVATAR.length} swatches)`);
+}
+
+if (!FEATURE_INK || AVATARS.length === 0) {
+  console.error('check-contrast: could not parse the avatar catalogue from src/app/shared/avatars.ts');
+  process.exit(1);
+}
+
+const avatarBad = [];
+for (const { id, ink, skin } of AVATARS) {
+  checks += 2;
+  const feature = ratio(FEATURE_INK, skin);
+  const silhouette = ratio(skin, ink);
+  if (feature < 4.5) avatarBad.push(`${id}: features on skin ${feature.toFixed(2)}:1 (need 4.5)`);
+  if (silhouette < 2.2) avatarBad.push(`${id}: head against frame ${silhouette.toFixed(2)}:1 (need 2.2)`);
+}
 if (avatarBad.length) {
   failures += avatarBad.length;
-  console.error(`✗ avatar palette: white initials fail on ${avatarBad.join(', ')}`);
+  console.error('✗ avatar portraits');
+  for (const b of avatarBad) console.error(`    ${b}`);
 } else {
-  console.log(`✓ avatar palette (${AVATAR.length} swatches)`);
+  console.log(`✓ avatar portraits (${AVATARS.length} two-tone pairs)`);
 }
 
 console.log(`\n${checks} pairs checked across ${themes.length} themes.`);

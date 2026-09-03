@@ -27,11 +27,22 @@ export const AVATAR_COLORS = [
   '#7e22ce', // purple
 ] as const;
 
-/** Stable, order-independent color for a display name or room name. */
-export function avatarColor(name: string): string {
+/**
+ * Stable, order-independent hash of a name.
+ *
+ * Shared with the avatar catalogue so a participant's default face and a room's
+ * color are derived from the same number: two hashes would drift apart the
+ * moment one of them was "improved".
+ */
+export function hashName(name: string): number {
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+  return Math.abs(hash);
+}
+
+/** Stable, order-independent color for a display name or room name. */
+export function avatarColor(name: string): string {
+  return AVATAR_COLORS[hashName(name) % AVATAR_COLORS.length];
 }
