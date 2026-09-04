@@ -231,6 +231,45 @@ let uid = 0;
             <path d="M10.5 15.6a11.5 10 0 0 1 23 0z" [attr.fill]="K" opacity=".1"/>
           </g>
         }
+        @case (6) {
+          <!-- pompom beanie -->
+          <circle cx="22" cy="3.6" r="2.9" [attr.fill]="PAINT.linen"/>
+          <path d="M9.5 16a12.5 11.5 0 0 1 25 0z" [attr.fill]="PAINT.linen"/>
+          <rect x="8.4" y="14.6" width="27.2" height="3.8" rx="1.9" [attr.fill]="PAINT.linen"/>
+          <path d="M9.5 16a12.5 11.5 0 0 1 25 0z" [attr.fill]="K" opacity=".12"/>
+        }
+        @case (7) {
+          <!-- crown -->
+          <path d="M9.5 17.4V6.6l6.2 4.8L22 3.6l6.3 7.8 6.2-4.8v10.8z" [attr.fill]="PAINT.linen"/>
+          <path d="M9.5 17.4V6.6l6.2 4.8L22 3.6l6.3 7.8 6.2-4.8v10.8z" [attr.fill]="K" opacity=".12"/>
+          <circle cx="15.7" cy="10.6" r="1.1" [attr.fill]="K" opacity=".45"/>
+          <circle cx="22" cy="3.4" r="1.3" [attr.fill]="K" opacity=".45"/>
+          <circle cx="28.3" cy="10.6" r="1.1" [attr.fill]="K" opacity=".45"/>
+        }
+        @case (8) {
+          <!-- bandana, knotted on the right -->
+          <path d="M8.4 16q13.6-8 27.2 0l-1.2 3.4q-12.4-6.2-24.8 0z" [attr.fill]="PAINT.linen"/>
+          <circle cx="34.6" cy="17.4" r="2.4" [attr.fill]="PAINT.linen"/>
+          <path d="M35.6 18.6l4.4-.4-2.6 3.8zM36.2 16.4l4-2.4-.6 4.2z" [attr.fill]="PAINT.linen"/>
+          <path d="M8.4 16q13.6-8 27.2 0l-1.2 3.4q-12.4-6.2-24.8 0z" [attr.fill]="K" opacity=".12"/>
+        }
+        @case (9) {
+          <!-- cowboy -->
+          <path d="M13.6 15.4q.8-9.8 8.4-9.8t8.4 9.8z" [attr.fill]="K" opacity=".85"/>
+          <path d="M3.4 16.4q6.2-3.6 18.6-3.6t18.6 3.6q-6.2 3.8-18.6 3.8T3.4 16.4z" [attr.fill]="K" opacity=".85"/>
+          <path d="M13.8 13.6q8.2-2 16.4 0" [attr.stroke]="PAINT.linen" stroke-width="1.6" fill="none" opacity=".7"/>
+        }
+        @case (10) {
+          <!-- chef's toque -->
+          <path d="M12.2 16.2V9.4a4.6 4.6 0 1 1 4.4-5.8 5.2 5.2 0 0 1 10.8 0 4.6 4.6 0 1 1 4.4 5.8v6.8z" [attr.fill]="PAINT.linen"/>
+          <rect x="11.8" y="14.6" width="20.4" height="3.8" rx="1.2" [attr.fill]="PAINT.linen"/>
+          <path d="M11.8 14.8h20.4" [attr.stroke]="K" stroke-width=".9" opacity=".18"/>
+        }
+        @case (11) {
+          <!-- horns, no hat at all: a different silhouette entirely -->
+          <path d="M13.8 12q-2.8-4.6-.8-8 3.6 2.2 4.8 6.8z" [attr.fill]="K" opacity=".85"/>
+          <path d="M30.2 12q2.8-4.6.8-8-3.6 2.2-4.8 6.8z" [attr.fill]="K" opacity=".85"/>
+        }
       }
     } @else {
     @switch (id()) {

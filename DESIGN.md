@@ -639,8 +639,9 @@ an unreadable face the first time someone rolled a bad number. Hue is drawn from
 the same two arcs that exclude green and red, inset by the jitter applied to the
 skin — sampling the full arc let a boundary hue drift into the green band.
 
-The face is composed from small pools (six eyes, six mouths, four brows, six
-hats) rather than drawn bespoke. Pools stay small enough that every combination
+The face is composed from small pools (six eyes, six mouths, four brows, twelve
+hats — half of them silhouettes the fixed ten do not wear: a crown, a bandana, a
+cowboy hat, a chef's toque, a pompom beanie, horns) rather than drawn bespoke. Pools stay small enough that every combination
 is one somebody would have been willing to draw on purpose.
 
 ### Avatar Portrait

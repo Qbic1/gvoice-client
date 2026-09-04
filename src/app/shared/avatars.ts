@@ -70,8 +70,15 @@ export interface AvatarTraits {
   readonly hat: number;
 }
 
-/** Pool sizes, mirrored by the @switch blocks in AvatarFaceComponent. */
-export const TRAIT_POOL = { eyes: 6, mouth: 6, brow: 4, hat: 6 } as const;
+/**
+ * Pool sizes, mirrored by the @switch blocks in AvatarFaceComponent.
+ *
+ * The hat is drawn last, so widening that pool changes only which hat an
+ * existing seed lands on — its colours, eyes, mouth and brow are already fixed
+ * by earlier draws and stay put. Reordering these draws would repaint every
+ * face that has ever been rolled.
+ */
+export const TRAIT_POOL = { eyes: 6, mouth: 6, brow: 4, hat: 12 } as const;
 
 export interface AvatarDef {
   readonly id: AvatarId;
