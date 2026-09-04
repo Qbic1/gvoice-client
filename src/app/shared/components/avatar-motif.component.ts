@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { AvatarId } from '../avatars';
+import { AvatarId, isRandomAvatarId } from '../avatars';
 
 let uid = 0;
 
@@ -32,7 +32,7 @@ let uid = 0;
              [attr.width]="tile()" [attr.height]="tile()"
              [attr.patternTransform]="skew()">
       <g fill="currentColor" stroke="none">
-        @switch (id()) {
+        @switch (kind()) {
           @case ('cheerful') {
             <!-- confetti bits and sparkles, thrown rather than tiled -->
             <rect x="3" y="4" width="4.4" height="2" rx="1" transform="rotate(-25 5 5)"/>
@@ -87,10 +87,19 @@ let uid = 0;
             <path d="M24.6 4.4a3.6 3.6 0 1 0 3.2 4.9 4.2 4.2 0 0 1-3.2-4.9z"/>
           }
           @case ('dumb') {
-            <!-- question marks and a dizzy swirl -->
-            <path d="M5.6 6.4a3.2 3.2 0 1 1 3.2 3.2v2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-            <circle cx="8.8" cy="15.2" r="1.1"/>
-            <path d="M20.6 16.4a3.2 3.2 0 1 1-2.8 4.7 1.7 1.7 0 1 0 2.1-2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <!-- ы, at three sizes. The question marks this used to carry moved to
+                 the rolled avatar, where an unknown face has the better claim. -->
+            <text x="3" y="13" font-size="13" font-weight="800">ы</text>
+            <text x="17" y="25" font-size="9" font-weight="800">ы</text>
+            <text x="21" y="10" font-size="6.5" font-weight="700" opacity=".8">ы</text>
+          }
+          @case ('random') {
+            <!-- question marks: nobody knows what this one is either -->
+            <text x="3" y="14" font-size="15" font-weight="800">?</text>
+            <text x="17" y="26" font-size="10" font-weight="800"
+                  transform="rotate(14 19 22)">?</text>
+            <text x="22" y="9" font-size="7" font-weight="700"
+                  transform="rotate(-12 24 7)" opacity=".85">?</text>
           }
           @case ('drunk') {
             <!-- bubbles, off-grid, sizes all over the place -->
@@ -120,6 +129,9 @@ let uid = 0;
       opacity: 0.16;
     }
     .motif { display: block; width: 100%; height: 100%; }
+    /* Set here, not as a presentation attribute: SVG attributes do not resolve
+       CSS custom properties, so font-family="var(--font-family)" is inert. */
+    .motif text { font-family: var(--font-family); }
   `],
 })
 export class AvatarMotifComponent {
@@ -127,23 +139,27 @@ export class AvatarMotifComponent {
 
   protected readonly pid = `av-motif-${uid++}`;
 
+  /** Every rolled avatar shares one motif; only the fixed ten have their own. */
+  protected kind = computed(() => (isRandomAvatarId(this.id()) ? 'random' : this.id()));
+
   /** Tile size, per motif — a damask needs a tighter repeat than bubbles. */
   protected tile = computed(() => {
-    switch (this.id()) {
+    switch (this.kind()) {
       case 'pompous': return 24;
       case 'sad': return 22;
       case 'angry': return 26;
       case 'sly': return 30;
       case 'sleepy': return 30;
       case 'playful': return 28;
-      case 'dumb': return 28;
+      case 'dumb': return 26;
+      case 'random': return 28;
       default: return 26;
     }
   });
 
   /** A few motifs read better off-axis; the drunk one is deliberately crooked. */
   protected skew = computed(() => {
-    switch (this.id()) {
+    switch (this.kind()) {
       case 'drunk': return 'rotate(-9)';
       case 'cheerful': return 'rotate(6)';
       case 'scared': return 'rotate(-4)';
