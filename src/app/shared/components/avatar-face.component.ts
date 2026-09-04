@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { AvatarId, FEATURE_INK, MUTED_INK, MUTED_SKIN, PORTRAIT_PAINT, avatarDef } from '../avatars';
+import { AvatarId, AvatarTraits, FEATURE_INK, MUTED_INK, MUTED_SKIN, PORTRAIT_PAINT, avatarDef } from '../avatars';
 
 let uid = 0;
 
@@ -61,6 +61,49 @@ let uid = 0;
         <path d="M14.4 25.4q2.4 2.6 4.8 0M24.8 25.4q2.4 2.6 4.8 0"/>
         <path d="M17.6 31.6q4.4 2 8.8 0"/>
       </g>
+    } @else if (isRolled()) {
+      <!-- A rolled face: primitives picked by the seed. Composed rather than
+           bespoke, so the pools stay small enough that every combination is one
+           somebody would have been willing to draw on purpose. -->
+      @switch (t().brow) {
+        @case (1) { <path d="M13.4 20.4h5.2M25.4 20.4h5.2" [attr.stroke]="K" stroke-width="1.8" stroke-linecap="round"/> }
+        @case (2) { <path d="M13.4 21.8l5.4 2.6M30.6 21.8l-5.4 2.6" [attr.stroke]="K" stroke-width="2.4" stroke-linecap="round"/> }
+        @case (3) { <path d="M11.6 19.6q4-3 8 -.6M24.4 19q4-2.6 8 .6" [attr.stroke]="K" stroke-width="2" fill="none" stroke-linecap="round"/> }
+      }
+
+      <g class="eyes">
+        @switch (t().eyes) {
+          @case (0) {
+            <circle cx="16.8" cy="25" r="1.9" [attr.fill]="K"/><circle cx="27.2" cy="25" r="1.9" [attr.fill]="K"/>
+          }
+          @case (1) {
+            <circle cx="16.6" cy="25" r="3.6" fill="#fff"/><circle cx="28" cy="25" r="3.6" fill="#fff"/>
+            <circle cx="16.6" cy="25.4" r="1.4" [attr.fill]="K"/><circle cx="28" cy="25.4" r="1.4" [attr.fill]="K"/>
+          }
+          @case (2) {
+            <path d="M14.4 25q2.6 2.6 5.2 0M24.4 25q2.6 2.6 5.2 0" [attr.stroke]="K" stroke-width="2" fill="none" stroke-linecap="round"/>
+          }
+          @case (3) {
+            <path d="M14.4 25.4q2.4-2.8 4.8 0M24.8 25.4q2.4-2.8 4.8 0" [attr.stroke]="K" stroke-width="2" fill="none" stroke-linecap="round"/>
+          }
+          @case (4) {
+            <path d="M13.8 25h5.4M24.8 25h5.4" [attr.stroke]="K" stroke-width="2.5" stroke-linecap="round"/>
+          }
+          @case (5) {
+            <circle cx="16.8" cy="25" r="1.9" [attr.fill]="K"/>
+            <path d="M24.9 25.4q2.5-2.6 5 0" [attr.stroke]="K" stroke-width="2" fill="none" stroke-linecap="round"/>
+          }
+        }
+      </g>
+
+      @switch (t().mouth) {
+        @case (0) { <path class="mo" d="M17 31.4q5 2.8 10 0" [attr.stroke]="K" stroke-width="2.1" fill="none" stroke-linecap="round"/> }
+        @case (1) { <path class="mo" d="M17.6 33q4.4-3 8.8 0" [attr.stroke]="K" stroke-width="2.1" fill="none" stroke-linecap="round"/> }
+        @case (2) { <path class="mo" d="M16.4 30a5.6 5.6 0 0 0 11.2 0z" [attr.fill]="K"/> }
+        @case (3) { <circle class="mo" cx="22" cy="31.4" r="1.9" [attr.stroke]="K" stroke-width="1.8" fill="none"/> }
+        @case (4) { <path class="mo" d="M17.4 31.6h9.2" [attr.stroke]="K" stroke-width="2.2" stroke-linecap="round"/> }
+        @case (5) { <path class="mo" d="M16.4 31.6q2.6-2.4 5.2 0t5.2 0" [attr.stroke]="K" stroke-width="2.1" fill="none" stroke-linecap="round"/> }
+      }
     } @else {
       @switch (id()) {
         @case ('cheerful') {
@@ -156,6 +199,79 @@ let uid = 0;
       }
     }
 
+    @if (isRolled()) {
+      @switch (t().hat) {
+        @case (0) {
+          <path d="M22 3 33 16H11z" [attr.fill]="PAINT.linen"/>
+          <path d="M22 3 27 16H11z" [attr.fill]="K" opacity=".14"/>
+          <circle cx="22" cy="3.2" r="2.6" [attr.fill]="PAINT.linen"/>
+        }
+        @case (1) {
+          <path d="M8.6 15.5a13.4 11 0 0 1 26.8 0z" [attr.fill]="K" opacity=".92"/>
+          <path d="M8.8 15.2q-5.6.6-6 3.4 4.2 1 6.6-1z" [attr.fill]="K" opacity=".7"/>
+          <circle cx="22" cy="6.4" r="1.8" [attr.fill]="PAINT.linen"/>
+        }
+        @case (2) {
+          <rect x="12.5" y="1" width="19" height="12" rx="1.6" [attr.fill]="K" opacity=".9"/>
+          <rect x="12.5" y="9.4" width="19" height="2.6" [attr.fill]="PAINT.linen" opacity=".55"/>
+          <rect x="7" y="12.4" width="30" height="3" rx="1.5" [attr.fill]="K" opacity=".9"/>
+        }
+        @case (3) {
+          <path d="M8 16.5a14 12.5 0 0 1 28 0z" [attr.fill]="K" opacity=".82"/>
+          <rect x="5.5" y="15.2" width="33" height="3.4" rx="1.7" [attr.fill]="K" opacity=".9"/>
+        }
+        @case (4) {
+          <path d="M9 15.5q4-13 17-11.5 8 1 6 6.5-2 4.6-8 3.5" [attr.fill]="PAINT.linen"/>
+          <circle cx="33" cy="12.4" r="3.1" [attr.fill]="PAINT.linen"/>
+        }
+        @case (5) {
+          <g transform="rotate(-8 22 14)">
+            <path d="M10.5 15.6a11.5 10 0 0 1 23 0z" [attr.fill]="PAINT.linen"/>
+            <rect x="6.5" y="14.6" width="31" height="3.4" rx="1.7" [attr.fill]="PAINT.linen"/>
+            <path d="M10.5 15.6a11.5 10 0 0 1 23 0z" [attr.fill]="K" opacity=".1"/>
+          </g>
+        }
+        @case (6) {
+          <!-- pompom beanie -->
+          <circle cx="22" cy="3.6" r="2.9" [attr.fill]="PAINT.linen"/>
+          <path d="M9.5 16a12.5 11.5 0 0 1 25 0z" [attr.fill]="PAINT.linen"/>
+          <rect x="8.4" y="14.6" width="27.2" height="3.8" rx="1.9" [attr.fill]="PAINT.linen"/>
+          <path d="M9.5 16a12.5 11.5 0 0 1 25 0z" [attr.fill]="K" opacity=".12"/>
+        }
+        @case (7) {
+          <!-- crown -->
+          <path d="M9.5 17.4V6.6l6.2 4.8L22 3.6l6.3 7.8 6.2-4.8v10.8z" [attr.fill]="PAINT.linen"/>
+          <path d="M9.5 17.4V6.6l6.2 4.8L22 3.6l6.3 7.8 6.2-4.8v10.8z" [attr.fill]="K" opacity=".12"/>
+          <circle cx="15.7" cy="10.6" r="1.1" [attr.fill]="K" opacity=".45"/>
+          <circle cx="22" cy="3.4" r="1.3" [attr.fill]="K" opacity=".45"/>
+          <circle cx="28.3" cy="10.6" r="1.1" [attr.fill]="K" opacity=".45"/>
+        }
+        @case (8) {
+          <!-- bandana, knotted on the right -->
+          <path d="M8.4 16q13.6-8 27.2 0l-1.2 3.4q-12.4-6.2-24.8 0z" [attr.fill]="PAINT.linen"/>
+          <circle cx="34.6" cy="17.4" r="2.4" [attr.fill]="PAINT.linen"/>
+          <path d="M35.6 18.6l4.4-.4-2.6 3.8zM36.2 16.4l4-2.4-.6 4.2z" [attr.fill]="PAINT.linen"/>
+          <path d="M8.4 16q13.6-8 27.2 0l-1.2 3.4q-12.4-6.2-24.8 0z" [attr.fill]="K" opacity=".12"/>
+        }
+        @case (9) {
+          <!-- cowboy -->
+          <path d="M13.6 15.4q.8-9.8 8.4-9.8t8.4 9.8z" [attr.fill]="K" opacity=".85"/>
+          <path d="M3.4 16.4q6.2-3.6 18.6-3.6t18.6 3.6q-6.2 3.8-18.6 3.8T3.4 16.4z" [attr.fill]="K" opacity=".85"/>
+          <path d="M13.8 13.6q8.2-2 16.4 0" [attr.stroke]="PAINT.linen" stroke-width="1.6" fill="none" opacity=".7"/>
+        }
+        @case (10) {
+          <!-- chef's toque -->
+          <path d="M12.2 16.2V9.4a4.6 4.6 0 1 1 4.4-5.8 5.2 5.2 0 0 1 10.8 0 4.6 4.6 0 1 1 4.4 5.8v6.8z" [attr.fill]="PAINT.linen"/>
+          <rect x="11.8" y="14.6" width="20.4" height="3.8" rx="1.2" [attr.fill]="PAINT.linen"/>
+          <path d="M11.8 14.8h20.4" [attr.stroke]="K" stroke-width=".9" opacity=".18"/>
+        }
+        @case (11) {
+          <!-- horns, no hat at all: a different silhouette entirely -->
+          <path d="M13.8 12q-2.8-4.6-.8-8 3.6 2.2 4.8 6.8z" [attr.fill]="K" opacity=".85"/>
+          <path d="M30.2 12q2.8-4.6.8-8-3.6 2.2-4.8 6.8z" [attr.fill]="K" opacity=".85"/>
+        }
+      }
+    } @else {
     @switch (id()) {
       @case ('cheerful') {
         <path d="M22 3 33 16H11z" [attr.fill]="PAINT.linen"/>
@@ -203,6 +319,7 @@ let uid = 0;
           <path d="M10.5 15.6a11.5 10 0 0 1 23 0z" [attr.fill]="K" opacity=".1"/>
         </g>
       }
+    }
     }
 
     @if (deafened()) {
@@ -271,6 +388,10 @@ export class AvatarFaceComponent {
   protected readonly clipId = `avatar-clip-${uid++}`;
 
   protected def = computed(() => avatarDef(this.id()));
+
+  /** Rolled avatars are composed from primitives; the ten fixed ones are drawn. */
+  protected isRolled = computed(() => !!this.def().traits);
+  protected t = computed<AvatarTraits>(() => this.def().traits ?? { eyes: 0, mouth: 0, brow: 0, hat: 0 });
 
   /** Muted outranks speaking, exactly as it does for the card's ring. */
   protected talking = computed(() => this.speaking() && !this.muted() && !this.deafened());

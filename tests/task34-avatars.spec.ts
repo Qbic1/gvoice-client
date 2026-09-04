@@ -31,6 +31,16 @@ test.describe('Task 34: Participant Avatars', () => {
     return cardFor(page, name).locator('.avatar-name').textContent();
   }
 
+  /**
+   * The identity colour a card resolved. For a rolled avatar this is derived
+   * from the seed, so comparing it across two clients proves they agree.
+   */
+  function inkOn(page: Page, name: string) {
+    return cardFor(page, name).evaluate(
+      (e: HTMLElement) => getComputedStyle(e).getPropertyValue('--av-ink').trim()
+    );
+  }
+
   test.beforeEach(() => waitForEmptyRoom('general'));
 
   test('Every participant renders a portrait, never an initial', async ({ browser }) => {
@@ -136,5 +146,42 @@ test.describe('Task 34: Participant Avatars', () => {
 
     await ctx.close();
     await ensureApiUp();
+  });
+
+  test('A rolled avatar looks the same to everyone', async ({ browser }) => {
+    test.setTimeout(90000);
+    const ctxA = await browser.newContext({ permissions: ['microphone'] });
+    const ctxB = await browser.newContext({ permissions: ['microphone'] });
+    const pageA = await ctxA.newPage();
+    const pageB = await ctxB.newPage();
+
+    await joinRoom(pageA, 'Roll-A');
+    await joinRoom(pageB, 'Roll-B');
+    await expect(pageB.locator('.participant-card')).toHaveCount(2, { timeout: 15000 });
+
+    await cardFor(pageA, 'Roll-A').click();
+    await pageA.getByRole('dialog').getByRole('button', { name: /Рандомное уебище/ }).click();
+
+    await expect
+      .poll(() => avatarNameOn(pageA, 'Roll-A'), { timeout: 10000 })
+      .toBe('Рандомное уебище');
+
+    // The point of putting the seed in the id: B derives the same face from it
+    // rather than rolling its own, so the colour matches exactly.
+    await expect
+      .poll(() => avatarNameOn(pageB, 'Roll-A'), { timeout: 10000 })
+      .toBe('Рандомное уебище');
+
+    const inkA = await inkOn(pageA, 'Roll-A');
+    expect(inkA).toMatch(/^#[0-9a-f]{6}$/);
+    expect(await inkOn(pageB, 'Roll-A')).toBe(inkA);
+
+    // Rolling again lands somewhere else.
+    await cardFor(pageA, 'Roll-A').click();
+    await pageA.getByRole('dialog').getByRole('button', { name: /Рандомное уебище/ }).click();
+    await expect.poll(() => inkOn(pageA, 'Roll-A'), { timeout: 10000 }).not.toBe(inkA);
+
+    await ctxA.close();
+    await ctxB.close();
   });
 });

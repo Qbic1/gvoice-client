@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, HostListener, input, output } from '@angular/core';
-import { AVATARS, AvatarId } from '../../shared/avatars';
+import { AVATARS, AvatarId, newRandomAvatarId } from '../../shared/avatars';
 import { AvatarFaceComponent } from '../../shared/components/avatar-face.component';
 import { FocusTrapDirective } from '../../shared/directives/focus-trap.directive';
 
@@ -43,6 +43,23 @@ import { FocusTrapDirective } from '../../shared/directives/focus-trap.directive
               <span class="tile-name">{{ a.short }}</span>
             </button>
           }
+        </div>
+
+        <!-- Rolled avatars sit apart from the grid rather than becoming an
+             eleventh tile: eleven breaks the two clean rows, and this is a
+             different kind of action — you are not picking a face, you are
+             agreeing to be handed one. Each press rolls a fresh seed. -->
+        <div class="pick-footer">
+          <button type="button" class="roll" (click)="choose.emit(rollNew())">
+            <svg class="roll-face" viewBox="0 0 44 44" aria-hidden="true">
+              <rect width="44" height="44" rx="9" fill="currentColor" opacity=".18"/>
+              <text x="22" y="31" text-anchor="middle" font-size="24" font-weight="800">?</text>
+            </svg>
+            <span class="roll-copy">
+              <strong>Рандомное уебище</strong>
+              <em>Случайная морда, свои цвета. Жми ещё раз — будет другое.</em>
+            </span>
+          </button>
         </div>
       </div>
     </div>
@@ -150,6 +167,48 @@ import { FocusTrapDirective } from '../../shared/directives/focus-trap.directive
       max-width: 100%;
     }
     .tile.selected .tile-name { color: var(--accent); }
+
+    .pick-footer {
+      padding: 0 1rem 1rem;
+    }
+    .roll {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      background: var(--bg-base);
+      border: 1.5px dashed color-mix(in srgb, var(--border) 80%, transparent);
+      border-radius: 10px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-family: var(--font-family);
+      transition: var(--t-interactive);
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .roll:hover { border-color: var(--accent); color: var(--accent); }
+    }
+    .roll:active { transform: scale(0.99); }
+    .roll-face {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      fill: currentColor;
+    }
+    .roll-face text { font-family: var(--font-family); fill: currentColor; }
+    .roll-copy { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .roll-copy strong {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .roll-copy em {
+      font-style: normal;
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
   `],
 })
 export class AvatarPickerComponent {
@@ -159,6 +218,11 @@ export class AvatarPickerComponent {
   dismiss = output<void>();
 
   protected readonly avatars = AVATARS;
+
+  /** A fresh seed per press, so the button keeps working after the first roll. */
+  protected rollNew(): AvatarId {
+    return newRandomAvatarId();
+  }
 
   @HostListener('document:keydown.escape')
   onEscape() {

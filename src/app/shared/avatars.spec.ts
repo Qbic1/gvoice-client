@@ -3,9 +3,14 @@ import {
   AVATARS,
   AVATAR_IDS,
   FEATURE_INK,
+  RandomAvatarId,
+  TRAIT_POOL,
   avatarDef,
   avatarForName,
   isAvatarId,
+  isRandomAvatarId,
+  newRandomAvatarId,
+  randomAvatarDef,
   resolveAvatarId,
 } from './avatars';
 
@@ -108,5 +113,73 @@ describe('isAvatarId', () => {
 describe('avatarDef', () => {
   it('resolves every id', () => {
     for (const id of AVATAR_IDS) expect(avatarDef(id).id).toBe(id);
+  });
+});
+
+describe('rolled avatars', () => {
+  // The exact whitelist SignalingHub.NormalizeAvatar applies. Duplicated across
+  // the two repos with nothing checking it, so assert it here: a rolled id that
+  // fails this is silently dropped to empty by the server and the avatar
+  // vanishes for everyone but its owner.
+  const SERVER_SLUG = /^[a-z][a-z0-9-]{0,23}$/;
+
+  it('mints ids the server will accept', () => {
+    for (let i = 0; i < 200; i++) {
+      const id = newRandomAvatarId();
+      expect(id, id).toMatch(SERVER_SLUG);
+      expect(id.length).toBeLessThanOrEqual(24);
+      expect(isRandomAvatarId(id)).toBe(true);
+      expect(isAvatarId(id)).toBe(true);
+    }
+  });
+
+  it('is deterministic: one seed, one face', () => {
+    // The whole reason the seed lives in the id. If this drifts, a participant
+    // looks different in every other client's window.
+    const id = newRandomAvatarId();
+    expect(randomAvatarDef(id)).toEqual(randomAvatarDef(id));
+    expect(avatarDef(id)).toEqual(randomAvatarDef(id));
+  });
+
+  it('gives different seeds different faces', () => {
+    const defs = Array.from({ length: 60 }, () => randomAvatarDef(newRandomAvatarId()));
+    const shapes = new Set(defs.map(d => `${d.ink}|${d.skin}|${JSON.stringify(d.traits)}`));
+    expect(shapes.size).toBeGreaterThan(50);
+  });
+
+  it('never rolls an unreadable or state-coloured face', () => {
+    // Generated colours are corrected against the same two rules the fixed
+    // palette obeys, so this holds for every seed rather than most of them.
+    for (let i = 0; i < 500; i++) {
+      const id = newRandomAvatarId();
+      const d = randomAvatarDef(id);
+
+      expect(ratio(FEATURE_INK, d.skin), `features on ${id} (${d.skin})`).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(d.skin, d.ink), `head against frame on ${id}`).toBeGreaterThanOrEqual(2.2);
+
+      for (const c of [d.ink, d.skin]) {
+        const h = hue(c);
+        expect(h > 85 && h < 155, `${id} ${c} is green`).toBe(false);
+        expect(h > 345 || h < 20, `${id} ${c} is red`).toBe(false);
+      }
+    }
+  });
+
+  it('keeps every trait inside its pool', () => {
+    for (let i = 0; i < 300; i++) {
+      const t = randomAvatarDef(newRandomAvatarId()).traits!;
+      expect(t.eyes).toBeGreaterThanOrEqual(0);
+      expect(t.eyes).toBeLessThan(TRAIT_POOL.eyes);
+      expect(t.mouth).toBeLessThan(TRAIT_POOL.mouth);
+      expect(t.brow).toBeLessThan(TRAIT_POOL.brow);
+      expect(t.hat).toBeLessThan(TRAIT_POOL.hat);
+    }
+  });
+
+  it('passes a rolled id through resolveAvatarId untouched', () => {
+    const id = newRandomAvatarId();
+    expect(resolveAvatarId(id, 'Alice')).toBe(id);
+    // ...but a malformed one still falls back rather than drawing a blank.
+    expect(resolveAvatarId('random-NOPE' as RandomAvatarId, 'Alice')).toBe(avatarForName('Alice'));
   });
 });

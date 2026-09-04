@@ -603,7 +603,7 @@ The signature component. Three 48px squares inside a **recessed tray** —
   the border, and a **per-avatar motif** — an SVG `<pattern>` layer drawn about
   that character: confetti for the cheerful one, damask for the pompous one,
   crossbones for the sly one, barbed wire for the angry one, Z's for the sleepy
-  one. Drawn rather than generated from CSS gradients because gradients express
+  one, «ы» for the dumb one, question marks for a rolled one. Drawn rather than generated from CSS gradients because gradients express
   stripes and dots and nothing else, and ten cards of stripes read as one
   wallpaper in ten colours. Its colour is the ink mixed 62% toward
   `--text-primary`, so it lightens on dark grounds and darkens on light ones
@@ -622,6 +622,27 @@ The signature component. Three 48px squares inside a **recessed tray** —
   carries `role="button"`, a tabindex and Enter/Space.
 - **Status row:** mute and deafen glyphs in error, a `Listen-only` badge, and a
   volume chip shown only when volume is not 100%.
+
+### Rolled Avatars
+
+An eleventh option rolls a face instead of picking one. **Its seed lives in the
+id** — `random-7f3a9c` — not in a number drawn at render time, so every client
+derives the same face for the same person. A locally rolled face would make one
+participant look different in every other window, and the id shape still
+satisfies the server's slug whitelist, so nothing on the backend knows this
+exists.
+
+Colours are generated and then *corrected*: the head is lightened until the
+near-black features clear 4.5:1 on it, then the frame darkened until the head
+keeps a silhouette. A generator that merely sampled a plausible range would ship
+an unreadable face the first time someone rolled a bad number. Hue is drawn from
+the same two arcs that exclude green and red, inset by the jitter applied to the
+skin — sampling the full arc let a boundary hue drift into the green band.
+
+The face is composed from small pools (six eyes, six mouths, four brows, twelve
+hats — half of them silhouettes the fixed ten do not wear: a crown, a bandana, a
+cowboy hat, a chef's toque, a pompom beanie, horns) rather than drawn bespoke. Pools stay small enough that every combination
+is one somebody would have been willing to draw on purpose.
 
 ### Avatar Portrait
 
